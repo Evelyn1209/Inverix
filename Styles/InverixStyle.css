@@ -1,0 +1,246 @@
+body {
+    font-family: "Times New Roman", serif;
+    background-color: #FFFFFF;
+    margin: 0;
+    padding: 0;
+}
+
+/* HEADER */
+header {
+    background-color: #FFFFFF;
+    padding: 20px 40px;
+    border-bottom: 1px solid #D8D8C0;
+    font-size: 28px;
+    font-weight: bold;
+    color: #000000;
+}
+
+/* SIDEBAR */
+.sidebar {
+    background-color: #F7F7F5;
+    width: 220px;
+    height: 100vh;
+    padding: 30px 20px;
+    float: left;
+    border-right: 1px solid #D8D8C0;
+}
+
+    .sidebar h3 {
+        font-size: 16px;
+        color: #1693A5;
+        margin-top: 25px;
+        margin-bottom: 10px;
+    }
+
+    .sidebar a, .sidebar input[type=submit] {
+        display: block;
+        text-decoration: none;
+        color: #000000;
+        margin-bottom: 12px;
+        font-size: 15px;
+        background: none;
+        border: none;
+        text-align: left;
+        cursor: pointer;
+    }
+
+        .sidebar a:hover,
+        .sidebar input[type=submit]:hover {
+            color: #1693A5;
+        }
+
+/* CONTENIDO */
+.content {
+    margin-left: 260px;
+    padding: 50px;
+}
+
+    .content h2 {
+        font-size: 26px;
+        color: #000000;
+    }
+
+    .content p {
+        font-size: 17px;
+        color: #333333;
+        line-height: 1.6;
+    }
+
+/* LOGIN CARD */
+.login-container {
+    width: 400px;
+    margin: 120px auto;
+    padding: 40px;
+    border-radius: 14px;
+    background-color: #FFFFFF;
+    box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+    .login-container h1 {
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    .login-container h3 {
+        text-align: center;
+        font-weight: normal;
+        color: #1693A5;
+    }
+
+input[type=text],
+input[type=password] {
+    width: 100%;
+    padding: 12px;
+    margin-top: 8px;
+    margin-bottom: 18px;
+    border-radius: 8px;
+    border: 1px solid #D8D8C0;
+    font-family: "Times New Roman", serif;
+}
+
+input[type=submit],
+button,
+.aspNet-Button {
+    background-color: #1693A5;
+    color: #FFFFFF;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: "Times New Roman", serif;
+}
+
+    input[type=submit]:hover,
+    button:hover {
+        background-color: #127A88;
+    }
+
+/* BOTÓN CERRAR */
+.logout {
+    margin-top: 40px;
+    background-color: #000000;
+}
+
+    .logout:hover {
+        background-color: #333333;
+    }
+
+
+
+/* LOGO LOGIN */
+.logo-login {
+    width: 110px;
+    display: block;
+    margin: 0 auto 20px auto;
+}
+
+/* HEADER BRAND */
+.header-brand {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+/* LOGO HEADER */
+.logo-header {
+    width: 45px;
+}
+
+
+/* ================= PRODUCTOS ================= */
+
+/* CARD */
+.card {
+    background: #FFFFFF;
+    border-radius: 14px;
+    padding: 25px;
+    margin-top: 40px;
+    box-shadow: 0px 8px 25px rgba(0, 0, 0, 0.06);
+    border: 1px solid #F0F0ED;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.card-title {
+    font-size: 20px;
+    color: #000000;
+    margin: 0;
+}
+
+/* TABLA MODERNA */
+.table-modern {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: "Times New Roman", serif;
+}
+
+    .table-modern th {
+        background-color: #F7F7F5;
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #D8D8C0;
+        font-size: 15px;
+    }
+
+    .table-modern td {
+        padding: 12px;
+        border-bottom: 1px solid #EEEEEE;
+        font-size: 14px;
+    }
+
+    .table-modern tr:nth-child(even) {
+        background-color: #FAFAF8;
+    }
+
+    .table-modern tr:hover {
+        background-color: #F0F7F9;
+    }
+
+/* BADGES */
+.badge-active {
+    background-color: #E6F7FA;
+    color: #1693A5;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.badge-inactive {
+    background-color: #FDECEC;
+    color: #A51616;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+/* BOTONES GRID Y ENLACES (GridView CommandFields) */
+.table-modern a, .table-modern a:link, .table-modern a:visited, .table-modern a:active,
+.btn-action, a.btn-action {
+    background: none !important;
+    border: none !important;
+    cursor: pointer !important;
+    font-size: 18px !important;
+    padding: 4px !important;
+    color: #1693A5 !important;
+    text-decoration: none !important;
+    display: inline-block;
+}
+
+.table-modern a:hover, .btn-action:hover, a.btn-action:hover {
+    color: #127A88 !important;
+    text-decoration: none !important;
+}
+
+
+.read-only-input {
+    background-color: #e9ecef; /* gris claro para indicar que es solo lectura */
+    color: #495057; /* texto legible */
+    cursor: not-allowed; /* cursor que indica que no se puede editar */
+}
