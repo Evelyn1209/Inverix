@@ -4,9 +4,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head runat="server">
     <meta charset="utf-8" />
-    <title>Inverix - Gestion Financiera</title>
+    <title>Sistema Financiero Inverix</title>
 <link rel="icon" type="image/x-icon" href="../Images/iconlogo.png" />
-    <link href="../Styles/InverixStyle.css" rel="stylesheet" />
+    <link href="../Styles/InverixStyle.css?v=3" rel="stylesheet" />
 
 </head>
 
@@ -19,9 +19,10 @@
             <div class="login-container">
 
                 <asp:Image ID="imgLogoLogin"
-      runat="server"
-    ImageUrl="../Images/logo.png"
-    CssClass="logo-login" />
+                    runat="server"
+                    ImageUrl="../Images/logo.png"
+                    CssClass="logo-login"
+                    style="display:block; width:80px; height:80px; object-fit:contain; margin:0 auto 15px auto;" />
 
                 <h1 class="app-title">INVERIX</h1>
                 <h3 class="app-subtitle">
@@ -41,7 +42,7 @@
 
                 <div class="form-group">
                     <asp:Label ID="lblClave" runat="server" 
-                        Text="Contrase;a:" CssClass="form-label"></asp:Label>
+                        Text="Contraseña:" CssClass="form-label"></asp:Label>
 
                     <asp:TextBox ID="txtClave" runat="server" 
                         TextMode="Password" CssClass="form-input" autocomplete="new-password" oninput="document.getElementById('lblMensaje').innerText = '';"></asp:TextBox>
@@ -52,9 +53,87 @@
                     CssClass="btn-primary"
                     OnClick="btnLogin_Click" />
 
+
+                <div style="margin-top: 15px; text-align: center;">
+                    <asp:LinkButton ID="lnkMostrarRegistro" runat="server" CssClass="form-label" style="text-decoration: underline; color: #1693A5;" OnClick="lnkMostrarRegistro_Click"> ¿No tienes cuenta? Registrate aqui</asp:LinkButton>
+                </div>
+
                 <asp:Label ID="lblMensaje" runat="server" 
                     CssClass="error-message"></asp:Label>
 
+            </div>
+        </asp:Panel>
+
+        <!-- ================= REGISTRO ================= -->
+        <asp:Panel ID="pnlRegistro" runat="server" Visible="false" CssClass="login-panel">
+            <div class="login-container" style="max-width: 500px;">
+                <h2 class="app-title" style="font-size: 24px; color: #003366;">Crear Cuenta</h2>
+                <h3 class="app-subtitle" style="margin-bottom: 20px;">Portal de Cotizantes</h3>
+
+                <div class="form-row" style="display:flex; gap:10px;">
+                    <div class="form-group" style="flex:1;">
+                        <label class="form-label">Usuario:</label>
+                        <asp:TextBox ID="txtRegUsuario" runat="server" CssClass="form-input" autocomplete="off"></asp:TextBox>
+                    </div>
+                </div>
+                
+                <div class="form-row" style="display:flex; gap:10px;">
+                    <div class="form-group" style="flex:1;">
+                        <label class="form-label">Contraseña:</label>
+                        <asp:TextBox ID="txtRegClave" runat="server" CssClass="form-input" TextMode="Password" autocomplete="new-password"></asp:TextBox>
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label class="form-label">Confirmar Contraseña:</label>
+                        <asp:TextBox ID="txtRegConfirmarClave" runat="server" CssClass="form-input" TextMode="Password"></asp:TextBox>
+                    </div>
+                </div>
+
+                <hr class="divider" style="margin: 15px 0;" />
+
+                <div class="form-row" style="display:flex; gap:10px;">
+                    <div class="form-group" style="flex:1;">
+                        <label class="form-label">Tipo Identificacion:</label>
+                        <asp:DropDownList ID="ddlRegTipoIdentificacion" runat="server" CssClass="form-input" DataTextField="nombre" DataValueField="id_tipo_identificacion"></asp:DropDownList>
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label class="form-label">Numero Identificacion:</label>
+                        <asp:TextBox ID="txtRegIdentificacion" runat="server" CssClass="form-input"></asp:TextBox>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Nombres:</label>
+                    <asp:TextBox ID="txtRegNombre" runat="server" CssClass="form-input"></asp:TextBox>
+                </div>
+
+                <div class="form-row" style="display:flex; gap:10px;">
+                    <div class="form-group" style="flex:1;">
+                        <label class="form-label">Primer Apellido:</label>
+                        <asp:TextBox ID="txtRegPrimerApellido" runat="server" CssClass="form-input"></asp:TextBox>
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label class="form-label">Segundo Apellido:</label>
+                        <asp:TextBox ID="txtRegSegundoApellido" runat="server" CssClass="form-input"></asp:TextBox>
+                    </div>
+                </div>
+
+                <div class="form-row" style="display:flex; gap:10px;">
+                    <div class="form-group" style="flex:1;">
+                        <label class="form-label">Correo:</label>
+                        <asp:TextBox ID="txtRegCorreo" runat="server" CssClass="form-input" TextMode="Email"></asp:TextBox>
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label class="form-label">Telefono:</label>
+                        <asp:TextBox ID="txtRegTelefono" runat="server" CssClass="form-input"></asp:TextBox>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; display:flex; flex-direction:column; gap: 10px;">
+                    <asp:Button ID="btnRegistrar" runat="server" Text="Completar Registro" CssClass="btn-primary" OnClick="btnRegistrar_Click" />
+                    <asp:Button ID="btnVolverLogin" runat="server" Text="Volver al Login" CssClass="btn-secondary" OnClick="btnVolverLogin_Click" formnovalidate="true" />
+                </div>
+
+                <asp:Label ID="lblMensajeRegistro" runat="server" CssClass="error-message"></asp:Label>
             </div>
         </asp:Panel>
 
@@ -72,7 +151,8 @@
     <asp:Image ID="imgLogoHeader"
         runat="server"
         ImageUrl="../Images/iconlogo.png"
-        CssClass="logo-header" />
+        CssClass="logo-header"
+        style="width:36px; height:36px; object-fit:contain; flex-shrink:0;" />
 
     <h1 class="app-title">INVERIX</h1>
 
@@ -102,7 +182,7 @@
                     <h3 class="menu-title">Inicio</h3>
                     <asp:LinkButton ID="lnkInicio" runat="server" CssClass="menu-link" OnClick="lnkInicio_Click">Inicio</asp:LinkButton>
 
-                    <h3 class="menu-title">Administraci&oacute;n</h3>
+                    <h3 class="menu-title">Administracion</h3>
                     <asp:LinkButton ID="lnkUsuarios" runat="server" CssClass="menu-link" OnClick="lnkUsuarios_Click">Usuarios</asp:LinkButton>
                     <asp:LinkButton ID="lnkRoles" runat="server" CssClass="menu-link" OnClick="lnkRoles_Click">Roles</asp:LinkButton>
 
@@ -121,7 +201,7 @@
 
                     <div class="sidebar-footer">
                         <asp:Button ID="btnCerrarSesion" runat="server"
-                            Text="Cerrar Sesi&oacute;n"
+                            Text="Cerrar Sesion"
                             CssClass="btn-logout"
                             OnClick="btnCerrarSesion_Click" />
                     </div>
@@ -139,12 +219,12 @@
 
     <asp:Label ID="Label1" runat="server"
         CssClass="content-text"
-        Text="INVERIX es una plataforma inteligente dise&ntilde;ada para la gesti&oacute;n eficiente de cotizaciones e inversiones financieras.">
+        Text="INVERIX es una plataforma inteligente diseñada para la gestion eficiente de cotizaciones e inversiones financieras.">
     </asp:Label>
 
     <asp:Label ID="Label2" runat="server"
         CssClass="content-text"
-        Text="Desde este sistema podr&aacute; administrar productos financieros, configurar tasas y plazos, generar cotizaciones y consultar reportes estrat&eacute;gicos.">
+        Text="Desde este sistema podra; administrar productos financieros, configurar tasas y plazos, generar cotizaciones y consultar reportes estrategicos.">
     </asp:Label>
 
 </asp:Panel>
@@ -167,7 +247,7 @@
                 OnClick="btnNuevoProducto_Click" />
         </div>
 
-        <!-- Mensaje de éxito/error local para Productos (se auto-oculta con JS) -->
+        <!-- Mensaje de Ã©xito/error local para Productos (se auto-oculta con JS) -->
         <div style="margin-bottom:10px;">
             <asp:Label ID="lblMensajeProducto" runat="server" Visible="false"
                 style="display:block; padding:12px 16px; border-radius:6px; font-weight:bold;"></asp:Label>
@@ -221,17 +301,19 @@
                 </asp:TemplateField>
 
   <asp:BoundField DataField="UsuarioCreacion" HeaderText="Creado Por" />
-  <asp:BoundField DataField="FechaCreacion" HeaderText="Fecha Creaci&oacute;n" DataFormatString="{0:dd/MM/yyyy HH:mm}" />
+  <asp:BoundField DataField="FechaCreacion" HeaderText="Fecha Creacion" DataFormatString="{0:dd/MM/yyyy HH:mm}" />
   <asp:BoundField DataField="UsuarioModificacion" HeaderText="Modificado Por" />
   <asp:BoundField DataField="FechaModificacion" HeaderText="Fecha Modificacion" DataFormatString="{0:dd/MM/yyyy HH:mm}" />
 
-  <asp:CommandField ShowEditButton="true" ShowDeleteButton="true" EditText="&#9998;" DeleteText="&#128465;" ControlStyle-CssClass="btn-action" />
+
+                <asp:CommandField ShowEditButton="true" ShowDeleteButton="true" EditText="&#9998;" DeleteText="&#128465;" ControlStyle-CssClass="btn-action" />
 
             </Columns>
 
         </asp:GridView>
 
         <!-- Formulario Crear/Editar -->
+        <div id="seccionFormularioProducto"></div>
         <asp:Panel ID="pnlFormProducto" runat="server" Visible="false" CssClass="form-container" style="margin-top:20px; padding:15px; border:1px solid #ddd; background-color:#f9f9f9;">
             <h4 id="lblTituloFormularioProducto" runat="server" style="color:#1693A5; margin-top:0;">Nuevo Producto</h4>
             
@@ -271,16 +353,95 @@
 <!-- ================= USUARIOS ================= -->
 <asp:Panel ID="pnlUsuarios" runat="server" Visible="false">
     <div class="card">
-        <div class="card-header"><h3 class="card-title">Gestion de Usuarios</h3></div>
-        <p class="content-text">Modulo para administrar el acceso al sistema.</p>
+        <div class="card-header">
+            <h3 class="card-title">Gestión de Usuarios</h3>
+            <asp:Button ID="btnNuevoUsuario" runat="server" Text="+ Nuevo Usuario" CssClass="btn-primary" OnClick="btnNuevoUsuario_Click" />
+        </div>
+
+        <div style="margin-bottom:10px;">
+            <asp:Label ID="lblMensajeUsuario" runat="server" Visible="false" style="display:block; padding:12px 16px; border-radius:6px; font-weight:bold;"></asp:Label>
+        </div>
+
+        <script type="text/javascript">
+            function autoOcultarMensajeUsuario() {
+                var lbl = document.getElementById('<%= lblMensajeUsuario.ClientID %>');
+                if (lbl && lbl.innerText.trim() !== '') {
+                    setTimeout(function () {
+                        lbl.style.transition = 'opacity 0.8s';
+                        lbl.style.opacity = '0';
+                        setTimeout(function () { lbl.style.display = 'none'; }, 800);
+                    }, 3000);
+                }
+            }
+            window.addEventListener('load', autoOcultarMensajeUsuario);
+        </script>
+
+        <asp:GridView ID="gvUsuarios" runat="server" AutoGenerateColumns="False" CssClass="table-modern" DataKeyNames="IdUsuario,RolCodigo" OnRowEditing="gvUsuarios_RowEditing" OnRowDeleting="gvUsuarios_RowDeleting">
+            <Columns>
+                <asp:BoundField DataField="IdUsuario" HeaderText="ID" />
+                <asp:BoundField DataField="NombreUsuario" HeaderText="Usuario" />
+                <asp:BoundField DataField="Rol" HeaderText="Rol" />
+                
+                <asp:TemplateField HeaderText="Estado">
+                    <ItemTemplate>
+                        <span class='<%# Convert.ToBoolean(Eval("Estado")) ? "badge-active" : "badge-inactive" %>'>
+                            <%# Convert.ToBoolean(Eval("Estado")) ? "Activo" : "Inactivo" %>
+                        </span>
+                    </ItemTemplate>
+                </asp:TemplateField>
+                
+                <asp:CommandField ShowEditButton="true" ShowDeleteButton="true" EditText="&#9998;" DeleteText="&#128465;" ControlStyle-CssClass="btn-action" />
+            </Columns>
+        </asp:GridView>
+
+        <asp:Panel ID="pnlFormUsuario" runat="server" Visible="false" CssClass="form-container" style="margin-top:20px; padding:15px; border:1px solid #ddd; background-color:#f9f9f9;">
+            <h4 id="lblTituloFormularioUsuario" runat="server" style="color:#1693A5; margin-top:0;">Nuevo Usuario</h4>
+            <asp:HiddenField ID="hfIdUsuario" runat="server" />
+            
+            <div class="form-group">
+                <label>Usuario (Mínimo 4 caracteres):</label>
+                <asp:TextBox ID="txtNombreUsuario" runat="server" CssClass="form-input"></asp:TextBox>
+            </div>
+            
+            <div class="form-group" id="divClaveUsuario" runat="server">
+                <label>Clave (Mínimo 6 caracteres):</label>
+                <asp:TextBox ID="txtClaveUsuario" runat="server" CssClass="form-input" TextMode="Password"></asp:TextBox>
+            </div>
+
+            <div class="form-group">
+                <label>Rol Asignado:</label>
+                <asp:DropDownList ID="ddlRolUsuario" runat="server" CssClass="form-input" DataTextField="Nombre" DataValueField="IdRole">
+                </asp:DropDownList>
+            </div>
+
+            <div style="margin-top: 15px;">
+                <asp:Button ID="btnGuardarUsuario" runat="server" Text="Guardar" CssClass="btn-primary" OnClick="btnGuardarUsuario_Click" />
+                <asp:Button ID="btnCancelarUsuario" runat="server" Text="Cancelar" CssClass="btn-secondary" OnClick="btnCancelarUsuario_Click" formnovalidate="true" />
+            </div>
+        </asp:Panel>
     </div>
 </asp:Panel>
 
 <!-- ================= ROLES ================= -->
 <asp:Panel ID="pnlRoles" runat="server" Visible="false">
     <div class="card">
-        <div class="card-header"><h3 class="card-title">Gestion de Roles</h3></div>
-        <p class="content-text">Definicion de permisos y perfiles de usuario.</p>
+        <div class="card-header"><h3 class="card-title">Gestión de Roles</h3></div>
+        <p class="content-text" style="padding:0 15px;">Listado de permisos y perfiles de usuario.</p>
+        
+        <asp:GridView ID="gvRoles" runat="server" AutoGenerateColumns="False" CssClass="table-modern" DataKeyNames="IdRole">
+            <Columns>
+                <asp:BoundField DataField="IdRole" HeaderText="ID" />
+                <asp:BoundField DataField="Codigo" HeaderText="Código" />
+                <asp:BoundField DataField="Nombre" HeaderText="Nombre" />
+                <asp:TemplateField HeaderText="Estado">
+                    <ItemTemplate>
+                        <span class='<%# Convert.ToBoolean(Eval("Estado")) ? "badge-active" : "badge-inactive" %>'>
+                            <%# Convert.ToBoolean(Eval("Estado")) ? "Activo" : "Inactivo" %>
+                        </span>
+                    </ItemTemplate>
+                </asp:TemplateField>
+            </Columns>
+        </asp:GridView>
     </div>
 </asp:Panel>
 
@@ -292,7 +453,7 @@
             <asp:Button ID="btnNuevaMoneda" runat="server" Text="+ Nueva Moneda" CssClass="btn-primary" OnClick="btnNuevaMoneda_Click" />
         </div>
 
-        <!-- Mensaje de éxito/error local (se auto-oculta con JS) -->
+        <!-- Mensaje de error local (se auto-oculta con JS) -->
         <div style="margin-bottom:10px;">
             <asp:Label ID="lblMensajeMoneda" runat="server" Visible="false"
                 style="display:block; padding:12px 16px; border-radius:6px; font-weight:bold;"></asp:Label>
@@ -317,7 +478,7 @@
                 <asp:BoundField DataField="IdMoneda" HeaderText="ID" />
                 <asp:BoundField DataField="Codigo" HeaderText="Codigo" />
                 <asp:BoundField DataField="Nombre" HeaderText="Nombre" />
-                <asp:BoundField DataField="Simbolo" HeaderText="S&iacute;mbolo" />
+                <asp:BoundField DataField="Simbolo" HeaderText="Simbolo" />
                 
                 <asp:TemplateField HeaderText="Estado">
                     <ItemTemplate>
@@ -331,6 +492,7 @@
                 <asp:BoundField DataField="FechaCreacion" HeaderText="Fecha Creacion" DataFormatString="{0:dd/MM/yyyy HH:mm}" />
                 <asp:BoundField DataField="UsuarioModificacion" HeaderText="Modificado Por" />
                 <asp:BoundField DataField="FechaModificacion" HeaderText="Fecha Modificacion" DataFormatString="{0:dd/MM/yyyy HH:mm}" />
+
 
                 <asp:CommandField ShowEditButton="true" ShowDeleteButton="true" EditText="&#9998;" DeleteText="&#128465;" ControlStyle-CssClass="btn-action" />
             </Columns>
@@ -377,7 +539,7 @@
             <asp:Button ID="btnNuevaTasa" runat="server" Text="+ Nueva Tasa" CssClass="btn-primary" OnClick="btnNuevaTasa_Click" />
         </div>
 
-        <!-- Mensaje de éxito/error (se auto-oculta con JS) -->
+        <!-- Mensaje de Ã©xito/error (se auto-oculta con JS) -->
         <div style="margin-bottom:10px;">
             <asp:Label ID="lblMensajeTasas" runat="server" Visible="false"
                 style="display:block; padding:12px 16px; border-radius:6px; font-weight:bold;"></asp:Label>
@@ -428,7 +590,8 @@
 <asp:BoundField DataField="UsuarioModificacion" HeaderText="Modificado Por" />
 <asp:BoundField DataField="FechaModificacion" HeaderText="Fecha Modificacion" DataFormatString="{0:dd/MM/yyyy HH:mm}" />
 
-<asp:CommandField ShowEditButton="true" ShowDeleteButton="true" EditText="&#9998;" DeleteText="&#128465;" ControlStyle-CssClass="btn-action" />
+
+                <asp:CommandField ShowEditButton="true" ShowDeleteButton="true" EditText="&#9998;" DeleteText="&#128465;" ControlStyle-CssClass="btn-action" />
             </Columns>
         </asp:GridView>
 
@@ -476,7 +639,7 @@
             <asp:Button ID="btnNuevoPlazo" runat="server" Text="+ Nuevo Plazo" CssClass="btn-primary" OnClick="btnNuevoPlazo_Click" />
         </div>
 
-        <!-- Mensaje de éxito/error local para Plazos (se auto-oculta con JS) -->
+        <!-- Mensaje de error local para Plazos (se auto-oculta con JS) -->
         <div style="margin-bottom:10px;">
             <asp:Label ID="lblMensajePlazo" runat="server" Visible="false"
                 style="display:block; padding:12px 16px; border-radius:6px; font-weight:bold;"></asp:Label>
@@ -515,6 +678,7 @@
                 <asp:BoundField DataField="UsuarioModificacion" HeaderText="Modificado Por" />
                 <asp:BoundField DataField="FechaModificacion" HeaderText="Fecha Modificacion" DataFormatString="{0:dd/MM/yyyy HH:mm}" />
 
+
                 <asp:CommandField ShowEditButton="true" ShowDeleteButton="true" EditText="&#9998;" DeleteText="&#128465;" ControlStyle-CssClass="btn-action" />
             </Columns>
         </asp:GridView>
@@ -526,7 +690,7 @@
             <asp:HiddenField ID="hfIdPlazo" runat="server" />
             
 <div class="form-group">
-    <label>Cantidad de Días:</label>
+    <label>Cantidad de DÃ­as:</label>
     <asp:TextBox ID="txtDiasPlazo" runat="server" 
         TextMode="Number" ReadOnly="true"
         style="background-color: #e9ecef; color: #495057; cursor: not-allowed; border: 1px solid #ced4da; padding: 5px; border-radius: 4px;">
@@ -561,7 +725,7 @@
             <asp:Button ID="btnNuevoCotizante" runat="server" Text="+ Nuevo Cotizante" CssClass="btn-primary" OnClick="btnNuevoCotizante_Click" />
         </div>
 
-        <!-- Mensaje de éxito/error local para Cotizantes (se auto-oculta con JS) -->
+        <!-- Mensaje de Ã©xito/error local para Cotizantes (se auto-oculta con JS) -->
         <div style="margin-bottom:10px;">
             <asp:Label ID="lblMensajeCotizante" runat="server" Visible="false"
                 style="display:block; padding:12px 16px; border-radius:6px; font-weight:bold;"></asp:Label>
@@ -582,19 +746,19 @@
         </script>
 
         <asp:GridView ID="gvCotizantes" runat="server" AutoGenerateColumns="False" CssClass="table-modern" 
-            DataKeyNames="IdCotizante" OnRowEditing="gvCotizantes_RowEditing" OnRowDeleting="gvCotizantes_RowDeleting">
+            DataKeyNames="IdCotizante" OnRowEditing="gvCotizantes_RowEditing" OnRowDeleting="gvCotizantes_RowDeleting" OnRowCommand="gvCotizantes_RowCommand" OnRowDataBound="gvCotizantes_RowDataBound">
             <Columns>
-                <asp:BoundField DataField="Identificacion" HeaderText="Identificación" />
+                <asp:BoundField DataField="Identificacion" HeaderText="Identificacion" />
                 <asp:BoundField DataField="NombreCompleto" HeaderText="Nombre Completo" />
                 
-                <asp:TemplateField HeaderText="Tipo Identificación">
+                <asp:TemplateField HeaderText="Tipo Identificacion">
     <ItemTemplate>
         <%# Eval("TipoIdentificacionNombre") %> 
     </ItemTemplate>
 </asp:TemplateField>
 
                 <asp:BoundField DataField="Correo" HeaderText="Correo" />
-                <asp:BoundField DataField="Telefono" HeaderText="Teléfono" />
+                <asp:BoundField DataField="Telefono" HeaderText="Telefono" />
 
                 <asp:TemplateField HeaderText="Estado">
                     <ItemTemplate>
@@ -605,10 +769,18 @@
                 </asp:TemplateField>
 
                 <asp:BoundField DataField="UsuarioCreacion" HeaderText="Creado Por" />
-                <asp:BoundField DataField="FechaCreacion" HeaderText="Fecha Creación" DataFormatString="{0:dd/MM/yyyy HH:mm}" />
+                <asp:BoundField DataField="FechaCreacion" HeaderText="Fecha Creacion" DataFormatString="{0:dd/MM/yyyy HH:mm}" />
                 <asp:BoundField DataField="UsuarioModificacion" HeaderText="Modificado Por" />
-                <asp:BoundField DataField="FechaModificacion" HeaderText="Fecha Modificación" DataFormatString="{0:dd/MM/yyyy HH:mm}" />
+                <asp:BoundField DataField="FechaModificacion" HeaderText="Fecha Modificacion" DataFormatString="{0:dd/MM/yyyy HH:mm}" />
 
+                                <asp:TemplateField HeaderText="Acceso">
+                    <ItemTemplate>
+                        <asp:LinkButton ID="btnGenerarAcceso" runat="server" CommandName="GenerarAcceso" CommandArgument='<%# Eval("IdCotizante") %>' CssClass="btn-action" ToolTip="Generar Credenciales">
+                            &#128273;&#xFE0E;
+                        </asp:LinkButton>
+                        <asp:HiddenField ID="hfIdUsuarioGrid" runat="server" Value='<%# Eval("IdUsuario") %>' />
+                    </ItemTemplate>
+                </asp:TemplateField>
                 <asp:CommandField ShowEditButton="true" ShowDeleteButton="true" EditText="&#9998;" DeleteText="&#128465;" ControlStyle-CssClass="btn-action" />
             </Columns>
         </asp:GridView>
@@ -619,14 +791,14 @@
             
             <div class="form-row">
                 <div class="form-group" style="flex:1; margin-right:10px;">
-                    <label>Tipo Identificación:</label>
+                    <label>Tipo Identificacion:</label>
                     <asp:DropDownList ID="ddlTipoIdentificacion" runat="server" CssClass="form-input" 
     DataTextField="nombre" 
     DataValueField="id_tipo_identificacion">
 </asp:DropDownList>
                 </div>
                 <div class="form-group" style="flex:1;">
-                    <label>Número Identificación:</label>
+                    <label>Numero Identificacion:</label>
                     <asp:TextBox ID="txtIdentificacion" runat="server" CssClass="form-input"></asp:TextBox>
                 </div>
             </div>
@@ -648,11 +820,11 @@
 
             <div class="form-row" style="display:flex; gap:10px;">
                 <div class="form-group" style="flex:1;">
-                    <label>Correo Electrónico:</label>
+                    <label>Correo Electronico:</label>
                     <asp:TextBox ID="txtCorreoCotizante" runat="server" CssClass="form-input" TextMode="Email"></asp:TextBox>
                 </div>
                 <div class="form-group" style="flex:1;">
-                    <label>Teléfono:</label>
+                    <label>Telefono:</label>
                     <asp:TextBox ID="txtTelefonoCotizante" runat="server" CssClass="form-input"></asp:TextBox>
                 </div>
             </div>
@@ -667,10 +839,32 @@
                 <asp:Button ID="btnCancelarCotizante" runat="server" Text="Cancelar" CssClass="btn-secondary" OnClick="btnCancelarCotizante_Click" formnovalidate="true" />
             </div>
         </asp:Panel>
+        <!-- Panel Generar Acceso (Modal) -->
+        <asp:Panel ID="pnlGenerarAcceso" runat="server" Visible="false" CssClass="modal-overlay">
+            <div class="modal-content" style="max-width: 400px; padding: 25px; border-radius: 8px; background: white; margin: 10% auto;">
+                <h3 style="margin-top: 0; color: #1693A5;">Generar credenciales web</h3>
+                <p style="font-size: 0.9em; color: #000000;">Creando un usuario asociado al cotizante seleccionado.</p>
+                <asp:HiddenField ID="hfGenerarAccesoIdCotizante" runat="server" />
+                <asp:Label ID="lblMensajeGenerarAcceso" runat="server" ForeColor="Red" Font-Size="Small"></asp:Label>
+                
+                <div class="form-group" style="margin-top: 15px;">
+                    <label>Nombre de Usuario <span class="required">*</span></label>
+                    <asp:TextBox ID="txtGenUsuario" runat="server" CssClass="form-control" MaxLength="50"></asp:TextBox>
+                </div>
+                <div class="form-group">
+                    <label>Contraseña <span class="required">*</span></label>
+                    <asp:TextBox ID="txtGenClave" runat="server" CssClass="form-control" TextMode="Password" MaxLength="100"></asp:TextBox>
+                </div>
+                <div class="btn-group" style="margin-top: 20px; text-align: right;">
+                    <asp:Button ID="btnGuardarAcceso" runat="server" Text="Guardar Accesos" CssClass="btn btn-primary" OnClick="btnGuardarAcceso_Click" />
+                    <asp:Button ID="btnCancelarAcceso" runat="server" Text="Cancelar" CssClass="btn btn-secondary" OnClick="btnCancelarAcceso_Click" CausesValidation="false" />
+                </div>
+            </div>
+        </asp:Panel>
     </div>
 </asp:Panel>
 
-<!-- ================= NUEVA COTIZACIÓN ================= -->
+<!-- ================= NUEVA COTIZACIÃ“N ================= -->
 <asp:Panel ID="pnlNuevaCotizacion" runat="server" Visible="false">
     <div class="card">
         <div class="card-header"><h3 class="card-title">Generador de Cotizaciones</h3></div>
@@ -697,7 +891,7 @@
             </div>
 
             <div style="margin-top: 15px;">
-                <asp:Button ID="btnGenerarCotizacion" runat="server" Text="Generar Cotizaci&oacute;n" CssClass="btn-primary" OnClick="btnGenerarCotizacion_Click" />
+                <asp:Button ID="btnGenerarCotizacion" runat="server" Text="Generar Cotizacion" CssClass="btn-primary" OnClick="btnGenerarCotizacion_Click" />
             </div>
         </div>
     </div>
@@ -710,11 +904,11 @@
             <h3 class="card-title">Mis Cotizaciones</h3>
             <div style="display:flex; gap:10px;">
                 <asp:Button ID="btnExportarExcel" runat="server" Text="Exportar a Excel" CssClass="btn-secondary" OnClick="btnExportarExcel_Click" />
-                <asp:Button ID="btnExportarPDF" runat="server" Text="Exportar a PDF" CssClass="btn-secondary" OnClientClick="imprimirCotizaciones(); return false;" />
+                <asp:Button ID="btnExportarPDF" runat="server" Text="&#128438; Imprimir" CssClass="btn-secondary" OnClientClick="imprimirCotizaciones(); return false;" />
             </div>
         </div>
 
-        <!-- Mensaje de éxito/error (se auto-oculta con JS) -->
+        <!-- Mensaje de error (se auto-oculta con JS) -->
         <div style="margin-bottom:10px;">
             <asp:Label ID="lblMensajeListaCotizaciones" runat="server" Visible="false"
                 style="display:block; padding:12px 16px; border-radius:6px; font-weight:bold;"></asp:Label>
@@ -735,36 +929,61 @@
 
         <!-- Filtro por Cotizante -->
 
-        <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px; padding:10px; background:#f9f9f9; border-radius:6px; border:1px solid #eee;">
-            <label style="font-weight:bold; white-space:nowrap;">Filtrar por Cotizante:</label>
-            <asp:DropDownList ID="ddlFiltroCotizante" runat="server" CssClass="form-input" style="max-width:280px;"></asp:DropDownList>
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px; padding:10px; background:#f9f9f9; border-radius:6px; border:1px solid #eee; flex-wrap:wrap;">
+            <label style="font-weight:bold; white-space:nowrap;">Cotizante:</label>
+            <asp:TextBox ID="txtFiltroCotizante" runat="server" CssClass="form-input" placeholder="Nombre del cotizante..." style="max-width:240px;"></asp:TextBox>
+            <label style="font-weight:bold; white-space:nowrap;">Nro. Cotización:</label>
+            <asp:TextBox ID="txtFiltroNumeroCotizacion" runat="server" CssClass="form-input" placeholder="Ej: COT-20260412..." style="max-width:240px;"></asp:TextBox>
             <asp:Button ID="btnFiltrarCotizaciones" runat="server" Text="Filtrar" CssClass="btn-primary" OnClick="btnFiltrarCotizaciones_Click" />
             <asp:Button ID="btnVerTodos" runat="server" Text="Ver Todos" CssClass="btn-secondary" OnClick="btnVerTodos_Click" />
         </div>
 
         <script type="text/javascript">
             function imprimirCotizaciones() {
-                var printContent = document.getElementById('<%= gvCotizaciones.ClientID %>');
-                if (!printContent) { alert('No hay datos para imprimir'); return; }
-                var windowUrl = 'about:blank';
-                var printWindow = window.open(windowUrl, 'PrintWindow', 'width=800,height=600');
-                
-                printWindow.document.write('<html><head><title>Reporte de Cotizaciones</title>');
+                var printWindow = window.open('', 'PrintWindow', 'width=900,height=700');
+                printWindow.document.write('<html><head><title>Reporte Inverix</title>');
                 printWindow.document.write('<style>');
-                printWindow.document.write('body { font-family: Arial, sans-serif; padding: 20px; }');
-                printWindow.document.write('table { border-collapse: collapse; width: 100%; margin-top: 20px; }');
-                printWindow.document.write('th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }');
-                printWindow.document.write('th { background-color: #003366; color: white; }');
-                printWindow.document.write('td:last-child, th:last-child { display: none; }'); // Ocultar columna "Acción"
-                printWindow.document.write('</style>');
-                printWindow.document.write('</head><body>');
-                printWindow.document.write('<h2 style="color:#003366; border-bottom:2px solid #003366; padding-bottom:10px;">Reporte de Cotizaciones</h2>');
-                printWindow.document.write(printContent.outerHTML);
+                printWindow.document.write('body { font-family: "Times New Roman", serif; padding: 20px; color: #000; }');
+                printWindow.document.write('h2 { color: #1693A5; border-bottom: 2px solid #1693A5; padding-bottom:8px; }');
+                printWindow.document.write('h4 { color: #1693A5; margin-top:24px; }');
+                printWindow.document.write('table { border-collapse: collapse; width: 100%; margin-top: 10px; font-size:13px; }');
+                printWindow.document.write('th { background-color: #1693A5; color: white; padding: 8px; text-align: left; }');
+                printWindow.document.write('td { border: 1px solid #ddd; padding: 7px; }');
+                printWindow.document.write('tr:nth-child(even) { background-color: #f9f9f9; }');
+                printWindow.document.write('.last-col { display: none; }');
+                printWindow.document.write('tfoot td { background-color: #1693A5; color: white; font-weight: bold; }');
+                printWindow.document.write('@media print { button { display:none; } }');
+                printWindow.document.write('</style></head><body>');
+                printWindow.document.write('<h2>Reporte de Cotizaciones &mdash; Inverix</h2>');
+
+                // Lista de cotizaciones
+                var gvListaEl = document.getElementById('<%= gvCotizaciones.ClientID %>');
+                if (gvListaEl) {
+                    // Clonar para poder ocultar última columna (acciones)
+                    var clone = gvListaEl.cloneNode(true);
+                    var celdas = clone.querySelectorAll('tr > *:last-child');
+                    celdas.forEach(function(c){ c.style.display = 'none'; });
+                    printWindow.document.write('<h4>Lista de Cotizaciones</h4>');
+                    printWindow.document.write(clone.outerHTML);
+                }
+
+                // Detalle mensual (si está visible)
+                var pnlDetalle = document.getElementById('<%= pnlDetallesView.ClientID %>');
+                if (pnlDetalle && pnlDetalle.style.display !== 'none') {
+                    var tituloDetalle = document.getElementById('<%= lblTituloDetalles.ClientID %>');
+                    var titulo = tituloDetalle ? tituloDetalle.innerText : 'Detalles Mensuales';
+                    var gvDetalleEl = document.getElementById('<%= gvDetallesCotizacion.ClientID %>');
+                    if (gvDetalleEl) {
+                        printWindow.document.write('<h4>' + titulo + '</h4>');
+                        printWindow.document.write(gvDetalleEl.outerHTML);
+                    }
+                }
+
+                printWindow.document.write('<p style="margin-top:30px; font-size:11px; color:#888;">Generado el: ' + new Date().toLocaleString() + '</p>');
                 printWindow.document.write('</body></html>');
                 printWindow.document.close();
                 printWindow.focus();
-                // Retraso ligero para asegurar que se renderice antes de imprimir
-                setTimeout(function(){ printWindow.print(); printWindow.close(); }, 250);
+                setTimeout(function(){ printWindow.print(); }, 400);
             }
         </script>
         
@@ -787,17 +1006,17 @@
             </Columns>
         </asp:GridView>
 
-        <!-- Panel de Detalles de Cotización -->
+        <!-- Panel de Detalles de CotizaciÃ³n -->
         <asp:Panel ID="pnlDetallesView" runat="server" Visible="false" style="margin-top:20px; border-top:2px solid #ddd; padding-top:15px;">
             <h4 id="lblTituloDetalles" runat="server" style="color:#003366;">Detalles Mensuales</h4>
             <asp:HiddenField ID="hfIdCotizacionActual" runat="server" />
             <br/>
-            <asp:GridView ID="gvDetallesCotizacion" runat="server" AutoGenerateColumns="False" CssClass="table-modern" DataKeyNames="IdCotizacion,NumeroMes">
+            <asp:GridView ID="gvDetallesCotizacion" runat="server" AutoGenerateColumns="False" CssClass="table-modern" DataKeyNames="IdCotizacion,NumeroMes" OnRowDataBound="gvDetallesCotizacion_RowDataBound" OnDataBound="gvDetallesCotizacion_DataBound" ShowFooter="True">
                 <Columns>
                     <asp:BoundField DataField="NumeroMes" HeaderText="Mes" />
-                    <asp:BoundField DataField="InteresBruto" HeaderText="Inter&eacute;s Bruto" DataFormatString="{0:N2}" />
+                    <asp:BoundField DataField="InteresBruto" HeaderText="Interes Bruto" DataFormatString="{0:N2}" />
                     <asp:BoundField DataField="Impuesto" HeaderText="Impuesto" DataFormatString="{0:N2}" />
-                    <asp:BoundField DataField="InteresNeto" HeaderText="Inter&eacute;s Neto" DataFormatString="{0:N2}" />
+                    <asp:BoundField DataField="InteresNeto" HeaderText="Interes Neto" DataFormatString="{0:N2}" />
                 </Columns>
             </asp:GridView>
             <div style="margin-top: 15px;">
@@ -805,10 +1024,10 @@
             </div>
         </asp:Panel>
 
-        <!-- Panel Editar Cotización -->
+        <!-- Panel Editar CotizaciÃ³n -->
         <asp:Panel ID="pnlEditarCotizacion" runat="server" Visible="false"
             style="margin-top:20px; border-top:2px solid #1693A5; padding-top:15px;">
-            <h4 style="color:#1693A5;">Editar Cotizaci&oacute;n</h4>
+            <h4 style="color:#1693A5;">Editar Cotizacion</h4>
             <asp:HiddenField ID="hfIdCotizacionEditar" runat="server" />
 
             <div class="form-group">

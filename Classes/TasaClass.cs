@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
@@ -13,6 +13,7 @@ namespace Inverix.Classes
         public int IdPlazo { get; set; }
         public int PlazoDias { get; set; } // Para vistas
         public decimal Porcentaje { get; set; }
+        public string NombreMoneda { get; set; } // Nueva propiedad
         public bool Estado { get; set; }
 
         public string UsuarioCreacion { get; set; }

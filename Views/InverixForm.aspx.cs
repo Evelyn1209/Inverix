@@ -19,6 +19,13 @@ namespace Inverix.Views
             {
                 if (Session["Usuario"] != null)
                 {
+                    // PROTECCIÓN DE ROL: Si es COT no puede estar en esta página (Admin)
+                    if (Session["RolCodigo"] != null && Session["RolCodigo"].ToString().Trim().ToUpper() == "COT")
+                    {
+                        Response.Redirect("CotizanteForm.aspx");
+                        return;
+                    }
+
                     MostrarSistema();
                     pnlInicio.Visible = true;
                     pnlProductos.Visible = false;
@@ -44,6 +51,8 @@ namespace Inverix.Views
                         case "Plazos": pnlPlazos.Visible = true; break;
                         case "Tasas": pnlTasas.Visible = true; break;
                         case "Cotizantes": pnlCotizantes.Visible = true; break;
+                        case "Usuarios": CargarUsuarios(); pnlUsuarios.Visible = true; break;
+                        case "Roles": CargarRoles(); pnlRoles.Visible = true; break;
                         case "NuevaCotizacion": pnlNuevaCotizacion.Visible = true; break;
                         case "ListaCotizaciones": pnlListaCotizaciones.Visible = true; break;
 
@@ -71,10 +80,9 @@ namespace Inverix.Views
                 if (panelActivo == "Cotizantes") CargarCotizantes();
                 if (panelActivo == "ListaCotizaciones")
                 {
-                    // Respetar el filtro activo guardado en Session
-                    int? filtroActivo = Session["FiltroCotizante"] != null ? (int?)Convert.ToInt32(Session["FiltroCotizante"]) : null;
-                    CargarCotizaciones(filtroActivo);
-                    CargarFiltroCotizantes();
+                    string filtroCotizante = Session["FiltroCotizante"] != null ? Session["FiltroCotizante"].ToString() : null;
+                    string filtroNumero = Session["FiltroNumeroCotizacion"] != null ? Session["FiltroNumeroCotizacion"].ToString() : null;
+                    CargarCotizaciones(filtroCotizante, filtroNumero);
                 }
 
 
@@ -133,7 +141,17 @@ namespace Inverix.Views
 
                     Session["Usuario"] = usuarioLogueado.NombreUsuario;
                     Session["Rol"] = usuarioLogueado.Rol;
-                    
+                    Session["RolCodigo"] = usuarioLogueado.RolCodigo;
+                    Session["IdUsuario"] = usuarioLogueado.IdUsuario;
+                    Session["IdCotizante"] = usuarioLogueado.IdCotizante;
+
+                    // Redirigir según rol (Usando Trim() y ToUpper() por seguridad)
+                    if (usuarioLogueado.RolCodigo != null && usuarioLogueado.RolCodigo.Trim().ToUpper() == "COT")
+                    {
+                        Response.Redirect("CotizanteForm.aspx");
+                        return;
+                    }
+
                     MostrarSistema();
 
                     // Mostrar Inicio después de login
@@ -227,13 +245,17 @@ namespace Inverix.Views
 
         protected void lnkUsuarios_Click(object sender, EventArgs e)
         {
+            Session["PanelActivo"] = "Usuarios";
             OcultarTodosLosPaneles();
+            CargarUsuarios();
             pnlUsuarios.Visible = true;
         }
 
         protected void lnkRoles_Click(object sender, EventArgs e)
         {
+            Session["PanelActivo"] = "Roles";
             OcultarTodosLosPaneles();
+            CargarRoles();
             pnlRoles.Visible = true;
         }
 
@@ -360,9 +382,12 @@ namespace Inverix.Views
 
                     lblTituloFormularioProducto.InnerText = "Editar Producto";
                     btnGuardarProducto.Text = "Actualizar";
-                    divEstadoProducto.Visible = true; // Mostrar estado al editar
+                    divEstadoProducto.Visible = true;
 
                     pnlFormProducto.Visible = true;
+                    // Hacer scroll al formulario automáticamente
+                    ScriptManager.RegisterStartupScript(this, GetType(), "scrollProducto",
+                        "setTimeout(function(){ document.getElementById('seccionFormularioProducto').scrollIntoView({behavior:'smooth',block:'start'}); }, 100);", true);
                 }
             }
             catch (Exception ex)
@@ -406,7 +431,7 @@ namespace Inverix.Views
             {
                 lblMensajeProducto.Visible = false;
 
-                // Validación básica
+                // Validación: Código
                 if (string.IsNullOrEmpty(txtCodigoProducto.Text.Trim()))
                 {
                     lblMensajeProducto.Text = "El código del producto es obligatorio.";
@@ -416,9 +441,10 @@ namespace Inverix.Views
                     return;
                 }
 
-                if (ddlMonedaProducto.SelectedValue == null || string.IsNullOrEmpty(ddlMonedaProducto.SelectedValue))
+                // Validación: Nombre
+                if (string.IsNullOrEmpty(txtNombreProducto.Text.Trim()))
                 {
-                    lblMensajeProducto.Text = "Debe seleccionar una moneda.";
+                    lblMensajeProducto.Text = "El nombre del producto es obligatorio.";
                     lblMensajeProducto.Style["background-color"] = "#f8d7da";
                     lblMensajeProducto.Style["color"] = "#721c24";
                     lblMensajeProducto.Visible = true;
@@ -478,7 +504,7 @@ namespace Inverix.Views
             }
             catch (Exception ex)
             {
-                lblMensajeProducto.Text = "Error al guardar el producto: " + ex.Message;
+                lblMensajeProducto.Text = ObtenerMensajeAmigable(ex, "producto");
                 lblMensajeProducto.Style["background-color"] = "#f8d7da";
                 lblMensajeProducto.Style["color"] = "#721c24";
                 lblMensajeProducto.Visible = true;
@@ -666,7 +692,7 @@ namespace Inverix.Views
             }
             catch (Exception ex)
             {
-                lblMensajeMoneda.Text = "Error al guardar la moneda: " + ex.Message;
+                lblMensajeMoneda.Text = ObtenerMensajeAmigable(ex, "moneda");
                 lblMensajeMoneda.Style["background-color"] = "#f8d7da";
                 lblMensajeMoneda.Style["color"] = "#721c24";
                 lblMensajeMoneda.Visible = true;
@@ -885,7 +911,7 @@ namespace Inverix.Views
             }
             catch (Exception ex)
             {
-                lblMensajePlazo.Text = "Error al guardar el plazo: " + ex.Message;
+                lblMensajePlazo.Text = ObtenerMensajeAmigable(ex, "plazo");
                 lblMensajePlazo.Style["background-color"] = "#f8d7da";
                 lblMensajePlazo.Style["color"] = "#721c24";
                 lblMensajePlazo.Visible = true;
@@ -1438,6 +1464,96 @@ namespace Inverix.Views
             if (ddlTipoIdentificacion.Items.Count > 0) ddlTipoIdentificacion.SelectedIndex = 0;
         }
 
+        protected void gvCotizantes_RowCommand(object sender, System.Web.UI.WebControls.GridViewCommandEventArgs e)
+        {
+            if (e.CommandName == "GenerarAcceso")
+            {
+                int idCotizante = Convert.ToInt32(e.CommandArgument);
+                hfGenerarAccesoIdCotizante.Value = idCotizante.ToString();
+                
+                txtGenUsuario.Text = string.Empty;
+                txtGenClave.Text = string.Empty;
+                lblMensajeGenerarAcceso.Text = string.Empty;
+                
+                pnlGenerarAcceso.Visible = true;
+            }
+        }
+
+        protected void gvCotizantes_RowDataBound(object sender, System.Web.UI.WebControls.GridViewRowEventArgs e)
+        {
+            if (e.Row.RowType == System.Web.UI.WebControls.DataControlRowType.DataRow)
+            {
+                System.Web.UI.WebControls.HiddenField hfIdUsuario = (System.Web.UI.WebControls.HiddenField)e.Row.FindControl("hfIdUsuarioGrid");
+                System.Web.UI.WebControls.LinkButton btnGenerarAcceso = (System.Web.UI.WebControls.LinkButton)e.Row.FindControl("btnGenerarAcceso");
+                
+                if (hfIdUsuario != null && btnGenerarAcceso != null)
+                {
+                    if (!string.IsNullOrEmpty(hfIdUsuario.Value))
+                    {
+                        btnGenerarAcceso.Visible = false;
+                    }
+                }
+            }
+        }
+
+        protected void btnGuardarAcceso_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string usuario = txtGenUsuario.Text.Trim();
+                string clave = txtGenClave.Text.Trim();
+                int idCotizante = Convert.ToInt32(hfGenerarAccesoIdCotizante.Value);
+
+                if (string.IsNullOrEmpty(usuario) || string.IsNullOrEmpty(clave))
+                {
+                    lblMensajeGenerarAcceso.Text = "Ambos campos son requeridos.";
+                    return;
+                }
+
+                if (usuario.Length < 4)
+                {
+                    lblMensajeGenerarAcceso.Text = "El usuario debe tener al menos 4 caracteres.";
+                    return;
+                }
+                
+                if (clave.Length < 6)
+                {
+                    lblMensajeGenerarAcceso.Text = "La contraseña debe tener al menos 6 caracteres.";
+                    return;
+                }
+
+                if (usuario.Contains(" ") || usuario.Contains("'") || usuario.Contains("\"") || usuario.Contains(";"))
+                {
+                    lblMensajeGenerarAcceso.Text = "El nombre de usuario contiene caracteres no permitidos.";
+                    return;
+                }
+
+                string admin = Session["Usuario"] != null ? Session["Usuario"].ToString() : "admin";
+                Inverix.Controllers.CotizanteController cotController = new Inverix.Controllers.CotizanteController();
+                
+                bool exito = cotController.GenerarAccesoCotizante(idCotizante, usuario, clave, admin);
+                
+                if (exito)
+                {
+                    pnlGenerarAcceso.Visible = false;
+                    CargarCotizantes();
+                    lblMensajeCotizante.Text = "Credenciales generadas exitosamente.";
+                    lblMensajeCotizante.Style["background-color"] = "#d4edda";
+                    lblMensajeCotizante.Style["color"] = "#155724";
+                    lblMensajeCotizante.Visible = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                lblMensajeGenerarAcceso.Text = ex.Message;
+            }
+        }
+
+        protected void btnCancelarAcceso_Click(object sender, EventArgs e)
+        {
+            pnlGenerarAcceso.Visible = false;
+        }
+
         private void CargarTiposIdEnLista()
         {
             try
@@ -1588,27 +1704,16 @@ namespace Inverix.Views
 
         private void CargarFiltroCotizantes()
         {
-            try
-            {
-                if (ddlFiltroCotizante.Items.Count > 1) return; // Ya cargado
-                Inverix.Controllers.CotizanteController cCtrl = new Inverix.Controllers.CotizanteController();
-                var lista = cCtrl.ObtenerTodos().FindAll(c => c.Estado);
-                ddlFiltroCotizante.Items.Clear();
-                ddlFiltroCotizante.Items.Add(new System.Web.UI.WebControls.ListItem("-- Todos los Cotizantes --", "0"));
-                foreach (var c in lista)
-                    ddlFiltroCotizante.Items.Add(new System.Web.UI.WebControls.ListItem(
-                        c.Nombre + " " + c.PrimerApellido,
-                        c.IdCotizante.ToString()));
-            }
-            catch { }
+            // Reemplazado por filtro de texto - ya no se usa dropdown
         }
 
-        private void CargarCotizaciones(int? idCotizanteFiltro = null)
+
+        private void CargarCotizaciones(string cotizanteFiltro = null, string numeroCotizacionFiltro = null)
         {
             try
             {
                 Inverix.Controllers.CotizacionController cotController = new Inverix.Controllers.CotizacionController();
-                gvCotizaciones.DataSource = cotController.ObtenerTodas(idCotizanteFiltro);
+                gvCotizaciones.DataSource = cotController.ObtenerTodas(cotizanteFiltro, numeroCotizacionFiltro);
                 gvCotizaciones.DataBind();
             }
             catch (Exception ex)
@@ -1622,18 +1727,21 @@ namespace Inverix.Views
 
         protected void btnFiltrarCotizaciones_Click(object sender, EventArgs e)
         {
-            int idFiltro = 0;
-            int.TryParse(ddlFiltroCotizante.SelectedValue, out idFiltro);
-            // Guardar filtro en Session para que Page_PreRender lo respete
-            Session["FiltroCotizante"] = idFiltro > 0 ? (object)idFiltro : null;
-            CargarCotizaciones(idFiltro > 0 ? (int?)idFiltro : null);
+            string cotizante = txtFiltroCotizante.Text.Trim();
+            string numeroCot = txtFiltroNumeroCotizacion.Text.Trim();
+
+            Session["FiltroCotizante"] = string.IsNullOrEmpty(cotizante) ? null : (object)cotizante;
+            Session["FiltroNumeroCotizacion"] = string.IsNullOrEmpty(numeroCot) ? null : (object)numeroCot;
+
             pnlDetallesView.Visible = false;
         }
 
         protected void btnVerTodos_Click(object sender, EventArgs e)
         {
-            Session["FiltroCotizante"] = null; // Limpiar filtro
-            ddlFiltroCotizante.SelectedIndex = 0;
+            Session["FiltroCotizante"] = null;
+            Session["FiltroNumeroCotizacion"] = null;
+            txtFiltroCotizante.Text = string.Empty;
+            txtFiltroNumeroCotizacion.Text = string.Empty;
             CargarCotizaciones();
             pnlDetallesView.Visible = false;
         }
@@ -1738,8 +1846,56 @@ namespace Inverix.Views
                 lblMensajeListaCotizaciones.Visible = true;
             }
         }
+        // Acumuladores para el pie de totales del GridView de detalles
+        private decimal _totalInteresBruto = 0;
+        private decimal _totalImpuesto = 0;
+        private decimal _totalInteresNeto = 0;
 
+        protected void gvDetallesCotizacion_RowDataBound(object sender, System.Web.UI.WebControls.GridViewRowEventArgs e)
+        {
+            if (e.Row.RowType == System.Web.UI.WebControls.DataControlRowType.DataRow)
+            {
+                // DataSource es List<DetalleCotizacionClass>, leer directo del objeto
+                Inverix.Classes.DetalleCotizacionClass item = (Inverix.Classes.DetalleCotizacionClass)e.Row.DataItem;
+                _totalInteresBruto += item.InteresBruto;
+                _totalImpuesto     += item.Impuesto;
+                _totalInteresNeto  += item.InteresNeto;
+            }
+        }
 
+        protected void gvDetallesCotizacion_DataBound(object sender, EventArgs e)
+        {
+            // Solo agregar fila de totales si hay datos
+            if (gvDetallesCotizacion.Rows.Count == 0) return;
+
+            System.Web.UI.WebControls.GridViewRow footerRow = gvDetallesCotizacion.FooterRow;
+            if (footerRow == null) return;
+
+            // Estilo general de la fila totales
+            footerRow.BackColor = System.Drawing.ColorTranslator.FromHtml("#1693A5");
+            footerRow.ForeColor = System.Drawing.Color.White;
+            footerRow.Font.Bold = true;
+
+            // Celda 0: etiqueta
+            footerRow.Cells[0].Text = "TOTALES";
+            footerRow.Cells[0].ForeColor = System.Drawing.Color.White;
+            footerRow.Cells[0].Font.Bold = true;
+
+            // Celdas 1, 2 y 3: valores acumulados formateados
+            footerRow.Cells[1].Text = _totalInteresBruto.ToString("N2");
+            footerRow.Cells[2].Text = _totalImpuesto.ToString("N2");
+            footerRow.Cells[3].Text = _totalInteresNeto.ToString("N2");
+
+            // Alinear a la derecha los números
+            footerRow.Cells[1].HorizontalAlign = System.Web.UI.WebControls.HorizontalAlign.Right;
+            footerRow.Cells[2].HorizontalAlign = System.Web.UI.WebControls.HorizontalAlign.Right;
+            footerRow.Cells[3].HorizontalAlign = System.Web.UI.WebControls.HorizontalAlign.Right;
+
+            // Resetear acumuladores para llamadas posteriores
+            _totalInteresBruto = 0;
+            _totalImpuesto = 0;
+            _totalInteresNeto = 0;
+        }
 
         protected void btnCerrarDetalles_Click(object sender, EventArgs e)
         {
@@ -1813,8 +1969,9 @@ namespace Inverix.Views
                 if (exito)
                 {
                     pnlEditarCotizacion.Visible = false;
-                    int? filtroActivo = Session["FiltroCotizante"] != null ? (int?)Convert.ToInt32(Session["FiltroCotizante"]) : null;
-                    CargarCotizaciones(filtroActivo);
+                    string filtroCot = Session["FiltroCotizante"] != null ? Session["FiltroCotizante"].ToString() : null;
+                    string filtroNum = Session["FiltroNumeroCotizacion"] != null ? Session["FiltroNumeroCotizacion"].ToString() : null;
+                    CargarCotizaciones(filtroCot, filtroNum);
 
                     // Mensaje verde arriba del historial (JS lo oculta en 3 s)
                     lblMensajeListaCotizaciones.Text = "Cotización actualizada exitosamente.";
@@ -1886,6 +2043,387 @@ namespace Inverix.Views
                 lblMensajeListaCotizaciones.Style["color"] = "#721c24";
                 lblMensajeListaCotizaciones.Visible = true;
             }
+        }
+
+
+
+
+
+
+        // ==========================================
+        //  EVENTOS DE NAVEGACIÓN Y REGISTRO
+        // ==========================================
+        protected void lnkMostrarRegistro_Click(object sender, EventArgs e)
+        {
+            // Ocultar Login y mostrar Registro
+            pnlLogin.Visible = false;
+            pnlRegistro.Visible = true;
+            lblMensajeRegistro.Text = "";
+
+            // Cargar los tipos de identificacion en el DropDown
+            CargarTiposIdentificacionRegistro();
+        }
+        protected void btnVolverLogin_Click(object sender, EventArgs e)
+        {
+            // Ocultar Registro y volver a Login
+            pnlRegistro.Visible = false;
+            pnlLogin.Visible = true;
+            lblMensaje.Text = "";
+        }
+        protected void btnRegistrar_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string usuario = txtRegUsuario.Text.Trim();
+                string clave = txtRegClave.Text.Trim();
+                string identificacion = txtRegIdentificacion.Text.Trim();
+                string nombre = txtRegNombre.Text.Trim();
+                string apellido1 = txtRegPrimerApellido.Text.Trim();
+                string apellido2 = txtRegSegundoApellido.Text.Trim();
+                string telefono = txtRegTelefono.Text.Trim();
+
+                // Validación básica de campos vacíos
+                if (string.IsNullOrWhiteSpace(usuario) || string.IsNullOrWhiteSpace(clave) || string.IsNullOrWhiteSpace(identificacion) || string.IsNullOrWhiteSpace(nombre) || string.IsNullOrWhiteSpace(apellido1))
+                {
+                    lblMensajeRegistro.Text = "Por favor, complete todos los campos obligatorios (Usuario, Clave, Identificación, Nombre y Primer Apellido).";
+                    return;
+                }
+
+                // Validación de Seguridad: Longitud Mínima
+                if (usuario.Length < 4)
+                {
+                    lblMensajeRegistro.Text = "El usuario debe tener al menos 4 caracteres.";
+                    return;
+                }
+                
+                if (clave.Length < 6)
+                {
+                    lblMensajeRegistro.Text = "La contraseña ingresada no cumple con la longitud mínima de seguridad de 6 caracteres .";
+                    return;
+                }
+
+                // Validación de Seguridad: Inyección / Caracteres no permitidos
+                if (usuario.Contains(" ") || usuario.Contains("'") || usuario.Contains("\"") || usuario.Contains(";"))
+                {
+                    lblMensajeRegistro.Text = "El nombre de usuario contiene caracteres de sistema no permitidos.";
+                    return;
+                }
+
+                // Validar contraseñas
+                if (clave != txtRegConfirmarClave.Text.Trim())
+                {
+                    lblMensajeRegistro.Text = "Las contraseñas no coinciden.";
+                    return;
+                }
+
+                // Validación de Nombre (Solo letras y espacios)
+                if (!Regex.IsMatch(nombre, @"^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$"))
+                {
+                    lblMensajeRegistro.Text = "El nombre no puede contener números ni caracteres especiales.";
+                    return;
+                }
+                if (!Regex.IsMatch(apellido1, @"^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$"))
+                {
+                    lblMensajeRegistro.Text = "El primer apellido no puede contener números ni caracteres especiales.";
+                    return;
+                }
+                if (!string.IsNullOrEmpty(apellido2) && !Regex.IsMatch(apellido2, @"^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$"))
+                {
+                    lblMensajeRegistro.Text = "El segundo apellido no puede contener números ni caracteres especiales.";
+                    return;
+                }
+
+                // Validación de Teléfono (Solo números, espacios, guiones o signo +)
+                if (!string.IsNullOrEmpty(telefono) && !Regex.IsMatch(telefono, @"^[0-9+\s-]+$"))
+                {
+                    lblMensajeRegistro.Text = "El teléfono solo puede contener números, espacios, guiones o el signo +.";
+                    return;
+                }
+
+                int idTipoId = Convert.ToInt32(ddlRegTipoIdentificacion.SelectedValue);
+
+                // Validación de Formato de Identificación (según tipo)
+                if (idTipoId == 1) // Cédula Física Costa Rica: 9 dígitos
+                {
+                    if (!Regex.IsMatch(identificacion, @"^[0-9]{9}$"))
+                    {
+                        lblMensajeRegistro.Text = "La cédula física debe tener exactamente 9 dígitos, sin letras ni guiones.";
+                        return;
+                    }
+                }
+                else if (idTipoId == 2) // Cédula Jurídica: 10 dígitos
+                {
+                    if (!Regex.IsMatch(identificacion, @"^[0-9]{10}$"))
+                    {
+                        lblMensajeRegistro.Text = "La cédula jurídica debe tener exactamente 10 dígitos.";
+                        return;
+                    }
+                }
+                else if (idTipoId == 3) // DIMEX: 11 o 12 dígitos
+                {
+                    if (!Regex.IsMatch(identificacion, @"^[0-9]{11,12}$"))
+                    {
+                        lblMensajeRegistro.Text = "El DIMEX debe tener entre 11 y 12 dígitos.";
+                        return;
+                    }
+                }
+
+                // Llamar al Controlador
+                Inverix.Controllers.UsuarioController uController = new Inverix.Controllers.UsuarioController();
+
+                bool exito = uController.RegistrarCotizanteWeb(
+                    usuario,
+                    clave,
+                    idTipoId,
+                    identificacion,
+                    nombre,
+                    apellido1,
+                    apellido2,
+                    txtRegCorreo.Text.Trim(),
+                    telefono
+                );
+                if (exito)
+                {
+                    // Si todo salió bien, limpiar formulario, volver al login y mostrar mensaje de éxito
+                    pnlRegistro.Visible = false;
+                    pnlLogin.Visible = true;
+                    lblMensaje.Text = "¡Cuenta creada con éxito! Ahora puede iniciar sesión.";
+                    lblMensaje.ForeColor = System.Drawing.Color.Green;
+                }
+            }
+            catch (Exception ex)
+            {
+                lblMensajeRegistro.Text = "Error al intentar registrar la cuenta: " + ex.Message;
+                lblMensajeRegistro.ForeColor = System.Drawing.Color.Red;
+            }
+        }
+        // ==========================================
+        //  MÉTODO DE APOYO (Cargar DropDown)
+        // ==========================================
+        private void CargarTiposIdentificacionRegistro()
+        {
+            try
+            {
+                Inverix.Controllers.CotizanteController cotController = new Inverix.Controllers.CotizanteController();
+                System.Data.DataTable dtTipos = cotController.ListarTiposIdentificacion();
+
+                ddlRegTipoIdentificacion.DataSource = dtTipos;
+                ddlRegTipoIdentificacion.DataTextField = "nombre";
+                ddlRegTipoIdentificacion.DataValueField = "id_tipo_identificacion";
+                ddlRegTipoIdentificacion.DataBind();
+            }
+            catch (Exception)
+            {
+                lblMensajeRegistro.Text = "Ocurrió un error al cargar los tipos de identificación.";
+            }
+        }
+
+        // ==========================================
+        //  CRUD USUARIOS
+        // ==========================================
+        private void CargarUsuarios()
+        {
+            try
+            {
+                Inverix.Controllers.UsuarioController uCtrl = new Inverix.Controllers.UsuarioController();
+                gvUsuarios.DataSource = uCtrl.ObtenerTodos();
+                gvUsuarios.DataBind();
+            }
+            catch (Exception ex)
+            {
+                MostrarErrorUsuario("Error cargando usuarios: " + ex.Message);
+            }
+        }
+
+        private void CargarRolesDropdown()
+        {
+            try
+            {
+                Inverix.Controllers.RoleController rCtrl = new Inverix.Controllers.RoleController();
+                ddlRolUsuario.DataSource = rCtrl.ObtenerTodos();
+                ddlRolUsuario.DataTextField = "Nombre";
+                ddlRolUsuario.DataValueField = "IdRole";
+                ddlRolUsuario.DataBind();
+            }
+            catch { }
+        }
+
+        private void MostrarErrorUsuario(string msg)
+        {
+            lblMensajeUsuario.Text = msg;
+            lblMensajeUsuario.Style["background-color"] = "#f8d7da";
+            lblMensajeUsuario.Style["color"] = "#721c24";
+            lblMensajeUsuario.Visible = true;
+        }
+
+        private void MostrarExitoUsuario(string msg)
+        {
+            lblMensajeUsuario.Text = msg;
+            lblMensajeUsuario.Style["background-color"] = "#d4edda";
+            lblMensajeUsuario.Style["color"] = "#155724";
+            lblMensajeUsuario.Visible = true;
+        }
+
+        protected void btnNuevoUsuario_Click(object sender, EventArgs e)
+        {
+            LimpiarFormularioUsuario();
+            CargarRolesDropdown();
+            lblTituloFormularioUsuario.InnerText = "Nuevo Usuario";
+            divClaveUsuario.Visible = true;
+            pnlFormUsuario.Visible = true;
+            lblMensajeUsuario.Visible = false;
+        }
+
+        private void LimpiarFormularioUsuario()
+        {
+            hfIdUsuario.Value = string.Empty;
+            txtNombreUsuario.Text = string.Empty;
+            txtClaveUsuario.Text = string.Empty;
+            if (ddlRolUsuario.Items.Count > 0) ddlRolUsuario.SelectedIndex = 0;
+        }
+
+        protected void gvUsuarios_RowEditing(object sender, System.Web.UI.WebControls.GridViewEditEventArgs e)
+        {
+            e.Cancel = true;
+            LimpiarFormularioUsuario();
+            CargarRolesDropdown();
+            
+            lblMensajeUsuario.Visible = false;
+            int idUsuario = Convert.ToInt32(gvUsuarios.DataKeys[e.NewEditIndex].Values["IdUsuario"]);
+            string rolCodigoStr = gvUsuarios.DataKeys[e.NewEditIndex].Values["RolCodigo"] != null ? gvUsuarios.DataKeys[e.NewEditIndex].Values["RolCodigo"].ToString() : "";
+            
+            System.Web.UI.WebControls.GridViewRow row = gvUsuarios.Rows[e.NewEditIndex];
+            string nombreUsuario = row.Cells[1].Text;
+
+            hfIdUsuario.Value = idUsuario.ToString();
+            txtNombreUsuario.Text = nombreUsuario;
+            
+            if (!string.IsNullOrEmpty(rolCodigoStr))
+            {
+                try {
+                    ddlRolUsuario.SelectedValue = rolCodigoStr;
+                } catch { }
+            }
+
+            lblTituloFormularioUsuario.InnerText = "Editar Usuario (La clave no se puede ver ni editar aquí)";
+            divClaveUsuario.Visible = false;
+            pnlFormUsuario.Visible = true;
+        }
+
+        protected void gvUsuarios_RowDeleting(object sender, System.Web.UI.WebControls.GridViewDeleteEventArgs e)
+        {
+            try
+            {
+                int idUsuario = Convert.ToInt32(gvUsuarios.DataKeys[e.RowIndex].Values["IdUsuario"]);
+                Inverix.Controllers.UsuarioController uCtrl = new Inverix.Controllers.UsuarioController();
+                string admin = Session["Usuario"] != null ? Session["Usuario"].ToString() : "admin";
+                
+                if (uCtrl.Inactivar(idUsuario, admin))
+                {
+                    CargarUsuarios();
+                    MostrarExitoUsuario("Usuario inactivado correctamente.");
+                }
+            }
+            catch (Exception ex)
+            {
+                MostrarErrorUsuario("Error al inactivar usuario: " + ex.Message);
+            }
+        }
+
+        protected void btnGuardarUsuario_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string admin = Session["Usuario"] != null ? Session["Usuario"].ToString() : "admin";
+                Inverix.Controllers.UsuarioController uCtrl = new Inverix.Controllers.UsuarioController();
+                
+                string usuario = txtNombreUsuario.Text.Trim();
+                int idRol = Convert.ToInt32(ddlRolUsuario.SelectedValue);
+
+                if (usuario.Length < 4)
+                {
+                    MostrarErrorUsuario("El nombre de usuario debe tener mínimo 4 caracteres.");
+                    return;
+                }
+                if (usuario.Contains(" ") || usuario.Contains("'"))
+                {
+                    MostrarErrorUsuario("Usuario contiene caracteres inválidos.");
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(hfIdUsuario.Value))
+                {
+                    // Crear
+                    string clave = txtClaveUsuario.Text.Trim();
+                    if (clave.Length < 6)
+                    {
+                        MostrarErrorUsuario("La clave debe tener mínimo 6 caracteres.");
+                        return;
+                    }
+                    if (uCtrl.Crear(usuario, clave, idRol, admin))
+                    {
+                        MostrarExitoUsuario("Usuario creado.");
+                        pnlFormUsuario.Visible = false;
+                        CargarUsuarios();
+                    }
+                    else
+                    {
+                        MostrarErrorUsuario("El nombre de usuario ya existe o hubo un error.");
+                    }
+                }
+                else
+                {
+                    // Actualizar
+                    int idEdit = Convert.ToInt32(hfIdUsuario.Value);
+                    if (uCtrl.Actualizar(idEdit, usuario, idRol, admin))
+                    {
+                        MostrarExitoUsuario("Usuario actualizado.");
+                        pnlFormUsuario.Visible = false;
+                        CargarUsuarios();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MostrarErrorUsuario("Error: " + ex.Message);
+            }
+        }
+
+        protected void btnCancelarUsuario_Click(object sender, EventArgs e)
+        {
+            pnlFormUsuario.Visible = false;
+            lblMensajeUsuario.Visible = false;
+        }
+
+        // ==========================================
+        //  ROLES (READ)
+        // ==========================================
+        private void CargarRoles()
+        {
+            try
+            {
+                Inverix.Controllers.RoleController rCtrl = new Inverix.Controllers.RoleController();
+                gvRoles.DataSource = rCtrl.ObtenerTodos();
+                gvRoles.DataBind();
+            }
+            catch { }
+        }
+
+        // Convierte excepciones SQL en mensajes comprensibles para el usuario
+        private string ObtenerMensajeAmigable(Exception ex, string entidad)
+        {
+            string msg = ex.Message;
+            // Error de clave duplicada (UNIQUE constraint / PRIMARY KEY)
+            if (msg.Contains("UNIQUE") || msg.Contains("duplicate") || msg.Contains("Violation") || msg.Contains("IX_") || msg.Contains("PRIMARY KEY"))
+                return $"Ya existe un {entidad} con ese código o nombre. Por favor verifique los datos ingresados.";
+            // Referencia de clave foránea
+            if (msg.Contains("FOREIGN KEY") || msg.Contains("REFERENCE"))
+                return $"No se puede eliminar este {entidad} porque está siendo utilizado en otro registro.";
+            // Error de valor nulo
+            if (msg.Contains("NULL") || msg.Contains("null"))
+                return $"Hay campos obligatorios vacíos. Por favor complete todos los datos requeridos.";
+            // Genérico amigable
+            return $"Ocurrió un error al guardar el {entidad}. Por favor intente de nuevo.";
         }
     }
 }

@@ -1,246 +1,487 @@
+/* ================================================================
+   INVERIX — InverixStyle.css
+   Sistema de Gestión de Cotizaciones
+================================================================ */
+
+/* ======================== RESET / BASE ======================== */
+* {
+    box-sizing: border-box;
+}
+
+/* Evitar que imágenes se agranden por defecto */
+img {
+    max-width: 100%;
+    height: auto;
+    display: inline-block;
+}
+
 body {
-    font-family: "Times New Roman", serif;
+    font-family: "Times New Roman", Times, serif;
     background-color: #FFFFFF;
     margin: 0;
     padding: 0;
+    color: #000000;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ======================== LAYOUT LOGIN ======================== */
+.login-panel {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    background-color: #F7F7F5;
+    padding-top: 60px;
+}
+
+.login-container {
+    width: 420px;
+    margin: 0 auto;
+    padding: 50px;
+    border-radius: 16px;
+    background-color: #FFFFFF;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+    border: 1px solid #D8D8C0;
+}
+
+    .login-container h1,
+    .app-title {
+        font-size: 32px;
+        text-align: center;
+        margin-bottom: 5px;
+        color: #000000;
+    }
+
+    .login-container h3,
+    .app-subtitle {
+        font-size: 18px;
+        color: #1693A5;
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+/* Logo en el login — tamaño controlado */
+.logo-login {
+    display: block;
+    width: 80px !important;
+    height: 80px !important;
+    max-width: 80px !important;
+    max-height: 80px !important;
+    object-fit: contain;
+    margin: 0 auto 15px auto;
+}
+
+/* ======================== LAYOUT SISTEMA ======================== */
+.system-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
 }
 
 /* HEADER */
-header {
+header, .header {
     background-color: #FFFFFF;
-    padding: 20px 40px;
-    border-bottom: 1px solid #D8D8C0;
-    font-size: 28px;
-    font-weight: bold;
-    color: #000000;
+    padding: 12px 40px;
+    border-bottom: 2px solid #D8D8C0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
 }
 
-/* SIDEBAR */
-.sidebar {
-    background-color: #F7F7F5;
-    width: 220px;
-    height: 100vh;
-    padding: 30px 20px;
-    float: left;
-    border-right: 1px solid #D8D8C0;
-}
-
-    .sidebar h3 {
-        font-size: 16px;
-        color: #1693A5;
-        margin-top: 25px;
-        margin-bottom: 10px;
-    }
-
-    .sidebar a, .sidebar input[type=submit] {
-        display: block;
-        text-decoration: none;
-        color: #000000;
-        margin-bottom: 12px;
-        font-size: 15px;
-        background: none;
-        border: none;
-        text-align: left;
-        cursor: pointer;
-    }
-
-        .sidebar a:hover,
-        .sidebar input[type=submit]:hover {
-            color: #1693A5;
-        }
-
-/* CONTENIDO */
-.content {
-    margin-left: 260px;
-    padding: 50px;
-}
-
-    .content h2 {
-        font-size: 26px;
-        color: #000000;
-    }
-
-    .content p {
-        font-size: 17px;
-        color: #333333;
-        line-height: 1.6;
-    }
-
-/* LOGIN CARD */
-.login-container {
-    width: 400px;
-    margin: 120px auto;
-    padding: 40px;
-    border-radius: 14px;
-    background-color: #FFFFFF;
-    box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.08);
-}
-
-    .login-container h1 {
-        text-align: center;
-        margin-bottom: 10px;
-    }
-
-    .login-container h3 {
-        text-align: center;
-        font-weight: normal;
-        color: #1693A5;
-    }
-
-input[type=text],
-input[type=password] {
-    width: 100%;
-    padding: 12px;
-    margin-top: 8px;
-    margin-bottom: 18px;
-    border-radius: 8px;
-    border: 1px solid #D8D8C0;
-    font-family: "Times New Roman", serif;
-}
-
-input[type=submit],
-button,
-.aspNet-Button {
-    background-color: #1693A5;
-    color: #FFFFFF;
-    border: none;
-    padding: 12px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-family: "Times New Roman", serif;
-}
-
-    input[type=submit]:hover,
-    button:hover {
-        background-color: #127A88;
-    }
-
-/* BOTÓN CERRAR */
-.logout {
-    margin-top: 40px;
-    background-color: #000000;
-}
-
-    .logout:hover {
-        background-color: #333333;
-    }
-
-
-
-/* LOGO LOGIN */
-.logo-login {
-    width: 110px;
-    display: block;
-    margin: 0 auto 20px auto;
-}
-
-/* HEADER BRAND */
+.header-left,
 .header-brand {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 12px;
 }
 
-/* LOGO HEADER */
+/* Logo en el header — tamaño pequeño y fijo para el encabezado */
 .logo-header {
-    width: 45px;
+    width: 36px !important;
+    height: 36px !important;
+    max-width: 36px !important;
+    max-height: 36px !important;
+    object-fit: contain;
+    flex-shrink: 0;
 }
 
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
 
-/* ================= PRODUCTOS ================= */
+.header h1,
+.app-title {
+    font-size: 22px;
+    margin: 0;
+    color: #000000;
+}
 
-/* CARD */
+/* CONTENEDOR PRINCIPAL (sidebar + contenido) */
+.main-container {
+    display: flex;
+    flex: 1;
+    min-height: calc(100vh - 60px);
+}
+
+/* ======================== SIDEBAR ======================== */
+.sidebar {
+    background-color: #F7F7F5;
+    width: 220px;
+    min-width: 220px;
+    padding: 25px 15px;
+    border-right: 1px solid #D8D8C0;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    padding-top: 20px;
+    border-top: 1px solid #D8D8C0;
+}
+
+/* Layout simple para CotizanteForm */
+.layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+.content {
+    flex-grow: 1;
+    padding: 30px 40px;
+    background-color: #FFFFFF;
+}
+
+/* ======================== MENU ======================== */
+.sidebar h3,
+.menu-title {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #1693A5;
+    margin: 22px 0 10px 5px;
+    padding: 0;
+}
+
+.sidebar a,
+.sidebar input[type=submit],
+.menu-link {
+    display: block;
+    text-decoration: none;
+    color: #000000;
+    padding: 9px 14px;
+    margin-bottom: 3px;
+    font-size: 15px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    background: none;
+    border: none;
+    text-align: left;
+    width: 100%;
+    cursor: pointer;
+    font-family: "Times New Roman", Times, serif;
+}
+
+    .sidebar a:hover,
+    .sidebar input[type=submit]:hover,
+    .menu-link:hover {
+        background-color: #D8D8C0;
+        color: #127A88;
+        padding-left: 18px;
+    }
+
+/* ======================== CARDS ======================== */
 .card {
     background: #FFFFFF;
-    border-radius: 14px;
+    border-radius: 12px;
     padding: 25px;
-    margin-top: 40px;
-    box-shadow: 0px 8px 25px rgba(0, 0, 0, 0.06);
-    border: 1px solid #F0F0ED;
+    margin-top: 25px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    border: 1px solid #E2E2D6;
+    transition: box-shadow 0.3s ease;
 }
+
+    .card:hover {
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    }
 
 .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #E2E2D6;
 }
 
 .card-title {
-    font-size: 20px;
+    font-size: 22px;
     color: #000000;
     margin: 0;
+    border-left: 4px solid #1693A5;
+    padding-left: 12px;
 }
 
-/* TABLA MODERNA */
+/* ======================== TABLAS ======================== */
 .table-modern {
     width: 100%;
-    border-collapse: collapse;
-    font-family: "Times New Roman", serif;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-top: 10px;
 }
 
     .table-modern th {
         background-color: #F7F7F5;
-        padding: 12px;
+        color: #000000;
+        padding: 13px 15px;
         text-align: left;
-        border-bottom: 1px solid #D8D8C0;
-        font-size: 15px;
-    }
-
-    .table-modern td {
-        padding: 12px;
-        border-bottom: 1px solid #EEEEEE;
+        border-bottom: 2px solid #D8D8C0;
+        font-weight: bold;
         font-size: 14px;
     }
 
-    .table-modern tr:nth-child(even) {
-        background-color: #FAFAF8;
+    .table-modern td {
+        padding: 13px 15px;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 14px;
+        color: #444;
     }
 
     .table-modern tr:hover {
-        background-color: #F0F7F9;
+        background-color: rgba(22, 147, 165, 0.04);
     }
 
-/* BADGES */
-.badge-active {
-    background-color: #E6F7FA;
+/* ======================== BOTONES ======================== */
+button,
+input[type=submit],
+.btn-primary {
+    background-color: #1693A5;
+    color: #FFFFFF;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+    button:hover,
+    input[type=submit]:hover,
+    .btn-primary:hover {
+        background-color: #127A88;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(22, 147, 165, 0.2);
+    }
+
+.btn-secondary {
+    background-color: #D8D8C0;
+    color: #000000;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+    .btn-secondary:hover {
+        background-color: #C8C8AF;
+    }
+
+.btn-danger {
+    background-color: #F8D7DA;
+    color: #721C24;
+    border: 1px solid #F5C6CB;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: "Times New Roman", Times, serif;
+    transition: all 0.2s ease;
+}
+
+    .btn-danger:hover {
+        background-color: #F5C6CB;
+    }
+
+.btn-info {
+    background-color: #E6F4F5;
+    color: #127A88;
+    border: 1px solid #ADD8E0;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: "Times New Roman", Times, serif;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+    .btn-info:hover {
+        background-color: #C8E8EC;
+    }
+
+.btn-action {
+    background: none;
+    border: none;
     color: #1693A5;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px 8px;
+    transition: color 0.2s;
+}
+
+    .btn-action:hover {
+        color: #127A88;
+    }
+
+.btn-logout {
+    color: #000000;
+    text-decoration: none;
+    font-size: 14px;
+    border: 1px solid #D8D8C0;
+    padding: 7px 14px;
+    border-radius: 6px;
+    transition: all 0.2s;
+    background: none;
+    cursor: pointer;
+    font-family: "Times New Roman", Times, serif;
+}
+
+    .btn-logout:hover {
+        background-color: #000000;
+        color: #FFFFFF;
+    }
+
+/* ======================== INPUTS ======================== */
+input[type=text],
+input[type=password],
+input[type=number],
+input[type=email],
+input[type=date],
+select,
+.form-input {
+    width: 100%;
+    padding: 10px 14px;
+    margin: 6px 0 16px 0;
+    border: 1px solid #D8D8C0;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 14px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    box-sizing: border-box;
+    background-color: #fff;
+}
+
+    input:focus,
+    select:focus {
+        outline: none;
+        border-color: #1693A5;
+        box-shadow: 0 0 0 3px rgba(22, 147, 165, 0.1);
+    }
+
+/* ======================== FORM GROUPS ======================== */
+.form-group {
+    margin-bottom: 10px;
+}
+
+    .form-group label,
+    .form-label {
+        font-weight: bold;
+        color: #000000;
+        display: block;
+        margin-bottom: 4px;
+        font-size: 14px;
+    }
+
+.form-row {
+    display: flex;
+    gap: 10px;
+}
+
+/* ======================== LABELS / HEADERS ======================== */
+.user-name,
+.user-label {
+    font-weight: bold;
+    margin-right: 15px;
+    font-size: 14px;
+}
+
+.welcome-title {
+    font-size: 26px;
+    color: #000000;
+    margin-bottom: 15px;
+    border-left: 4px solid #1693A5;
+    padding-left: 12px;
+}
+
+.content-text {
+    display: block;
+    font-size: 15px;
+    color: #444;
+    margin-bottom: 12px;
+    line-height: 1.6;
+}
+
+.error-message {
+    display: block;
+    color: #721c24;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin-top: 12px;
+    font-size: 14px;
+    font-weight: bold;
+    text-align: center;
+}
+
+/* ======================== BADGES ======================== */
+.badge-active {
+    background-color: #E6F4F5;
+    color: #127A88;
     padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 12px;
+    border-radius: 50px;
+    font-size: 13px;
     font-weight: bold;
 }
 
 .badge-inactive {
-    background-color: #FDECEC;
-    color: #A51616;
+    background-color: #F8D7DA;
+    color: #721C24;
     padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 12px;
+    border-radius: 50px;
+    font-size: 13px;
     font-weight: bold;
 }
 
-/* BOTONES GRID Y ENLACES (GridView CommandFields) */
-.table-modern a, .table-modern a:link, .table-modern a:visited, .table-modern a:active,
-.btn-action, a.btn-action {
-    background: none !important;
-    border: none !important;
-    cursor: pointer !important;
-    font-size: 18px !important;
-    padding: 4px !important;
-    color: #1693A5 !important;
-    text-decoration: none !important;
-    display: inline-block;
+/* ======================== DIVISOR ======================== */
+.divider {
+    border: none;
+    border-top: 1px solid #D8D8C0;
+    margin: 20px 0;
 }
 
-.table-modern a:hover, .btn-action:hover, a.btn-action:hover {
-    color: #127A88 !important;
-    text-decoration: none !important;
+/* ======================== HEADER LOGO BRAND ======================== */
+.header-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-
-.read-only-input {
-    background-color: #e9ecef; /* gris claro para indicar que es solo lectura */
-    color: #495057; /* texto legible */
-    cursor: not-allowed; /* cursor que indica que no se puede editar */
-}
+    .header-brand .app-title {
+        font-size: 20px;
+        font-weight: bold;
+        margin: 0;
+        color: #000000;
+    }

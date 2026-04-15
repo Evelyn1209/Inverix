@@ -1,4 +1,4 @@
-using System;
+Ôªøusing System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
@@ -42,7 +42,7 @@ namespace Inverix.Controllers
                             UsuarioCreacion = row["UsuarioCreacion"].ToString(),
                             FechaCreacion = row["FechaCreacion"] != DBNull.Value ? Convert.ToDateTime(row["FechaCreacion"]) : (DateTime?)null,
                             UsuarioModificacion = row["UsuarioModificacion"] != DBNull.Value ? row["UsuarioModificacion"].ToString() : string.Empty,
-                            FechaModificacion = row["FechaModificacion"] != DBNull.Value ? Convert.ToDateTime(row["FechaModificacion"]) : (DateTime?)null
+                            FechaModificacion = row["FechaModificacion"] != DBNull.Value ? Convert.ToDateTime(row["FechaModificacion"]) : (DateTime?)null, IdUsuario = row["IdUsuario"] != DBNull.Value ? Convert.ToInt32(row["IdUsuario"]) : (int?)null
                         });
                     }
                 }
@@ -54,7 +54,7 @@ namespace Inverix.Controllers
             return lista;
         }
 
-        // ?? CAMBIO AQUÕ: Cotizante ? CotizanteClass
+        // ?? CAMBIO AQU√ç: Cotizante ? CotizanteClass
         public bool Crear(CotizanteClass cotizante, string usuarioCreacion)
         {
             try
@@ -81,7 +81,7 @@ namespace Inverix.Controllers
             }
         }
 
-        // ?? CAMBIO AQUÕ: Cotizante ? CotizanteClass
+        // ?? CAMBIO AQU√ç: Cotizante ? CotizanteClass
         public bool Actualizar(CotizanteClass cotizante, string usuarioModificacion)
         {
             try
@@ -142,7 +142,29 @@ namespace Inverix.Controllers
             }
             catch (Exception ex)
             {
-                throw new Exception("Error al listar tipos de identificaciÛn: " + ex.Message);
+                throw new Exception("Error al listar tipos de identificaci√≥n: " + ex.Message);
+            }
+        }
+
+        public bool GenerarAccesoCotizante(int idCotizante, string usuario, string clave, string adminLogueado)
+        {
+            try
+            {
+                using (System.Data.SqlClient.SqlCommand cmd = new System.Data.SqlClient.SqlCommand("sp_GenerarAccesoCotizante"))
+                {
+                    cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@id_cotizante", idCotizante);
+                    cmd.Parameters.AddWithValue("@usuario", usuario);
+                    cmd.Parameters.AddWithValue("@clave", clave);
+                    cmd.Parameters.AddWithValue("@usuario_creador", adminLogueado);
+
+                    conexionDB.EjecutarInstruccion(cmd);
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error al generar acceso: " + ex.Message);
             }
         }
     }

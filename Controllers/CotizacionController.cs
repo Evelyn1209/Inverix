@@ -15,20 +15,26 @@ namespace Inverix.Controllers
             conexionDB = new Conexion();
         }
 
-        public List<CotizacionClass> ObtenerTodas(int? idCotizanteFiltro = null)
+        public List<CotizacionClass> ObtenerTodas(string cotizanteFiltro = null, string numeroCotizacionFiltro = null, int? idCotizante = null)
         {
             List<CotizacionClass> lista = new List<CotizacionClass>();
 
             try
             {
                 string sql = @"
-                    SELECT v.id_cotizacion, v.numero_cotizacion, v.producto, v.cotizante, v.monto, v.montoTotalNeto, v.fechaCotizacion 
+                    SELECT v.id_cotizacion, v.id_cotizante, v.numero_cotizacion, v.producto, v.cotizante, v.monto, v.montoTotalNeto, v.fechaCotizacion 
                     FROM vw_HistorialCotizaciones v
                     INNER JOIN Cotizaciones c ON v.id_cotizacion = c.id_cotizacion
                     WHERE c.estado = 1
                 ";
 
-                if (idCotizanteFiltro.HasValue && idCotizanteFiltro.Value > 0)
+                if (!string.IsNullOrWhiteSpace(cotizanteFiltro))
+                    sql += " AND v.cotizante LIKE @cotizante";
+
+                if (!string.IsNullOrWhiteSpace(numeroCotizacionFiltro))
+                    sql += " AND c.numero_cotizacion LIKE @numero_cotizacion";
+
+                if (idCotizante.HasValue && idCotizante.Value > 0)
                     sql += " AND c.id_cotizante = @id_cotizante";
 
                 sql += " ORDER BY v.fechaCotizacion DESC";
@@ -37,8 +43,14 @@ namespace Inverix.Controllers
                 {
                     cmd.CommandType = CommandType.Text;
 
-                    if (idCotizanteFiltro.HasValue && idCotizanteFiltro.Value > 0)
-                        cmd.Parameters.AddWithValue("@id_cotizante", idCotizanteFiltro.Value);
+                    if (!string.IsNullOrWhiteSpace(cotizanteFiltro))
+                        cmd.Parameters.AddWithValue("@cotizante", "%" + cotizanteFiltro.Trim() + "%");
+
+                    if (!string.IsNullOrWhiteSpace(numeroCotizacionFiltro))
+                        cmd.Parameters.AddWithValue("@numero_cotizacion", "%" + numeroCotizacionFiltro.Trim() + "%");
+
+                    if (idCotizante.HasValue && idCotizante.Value > 0)
+                        cmd.Parameters.AddWithValue("@id_cotizante", idCotizante.Value);
 
                     DataTable dt = conexionDB.EjecutarConsulta(cmd);
 
@@ -47,6 +59,7 @@ namespace Inverix.Controllers
                         lista.Add(new CotizacionClass
                         {
                             IdCotizacion = Convert.ToInt32(row["id_cotizacion"]),
+                            IdCotizante = Convert.ToInt32(row["id_cotizante"]),
                             NumeroCotizacion = row["numero_cotizacion"].ToString(),
                             NombreProducto = row["producto"].ToString(),
                             NombreCotizante = row["cotizante"].ToString(),
@@ -64,6 +77,41 @@ namespace Inverix.Controllers
 
             return lista;
         }
+
+        // Para Reportes del Cotizante (incluye campos de auditoría)
+        public System.Data.DataTable ObtenerParaReporte(int idCotizante, DateTime? desde = null, DateTime? hasta = null)
+        {
+            try
+            {
+                string sql = @"
+                    SELECT v.numero_cotizacion AS NumeroCotizacion, v.producto AS NombreProducto,
+                           v.fechaCotizacion AS FechaCotizacion, v.monto AS Monto,
+                           v.montoTotalNeto AS MontoTotalNeto,
+                           c.usuario_creacion AS UsuarioCreacion, c.fecha_creacion AS FechaCreacion
+                    FROM vw_HistorialCotizaciones v
+                    INNER JOIN Cotizaciones c ON v.id_cotizacion = c.id_cotizacion
+                    WHERE c.id_cotizante = @id_cotizante AND c.estado = 1
+                ";
+
+                if (desde.HasValue) sql += " AND c.fechaCotizacion >= @desde";
+                if (hasta.HasValue) sql += " AND c.fechaCotizacion <= @hasta";
+                sql += " ORDER BY v.fechaCotizacion DESC";
+
+                using (SqlCommand cmd = new SqlCommand(sql))
+                {
+                    cmd.CommandType = CommandType.Text;
+                    cmd.Parameters.AddWithValue("@id_cotizante", idCotizante);
+                    if (desde.HasValue) cmd.Parameters.AddWithValue("@desde", desde.Value.Date);
+                    if (hasta.HasValue) cmd.Parameters.AddWithValue("@hasta", hasta.Value.Date.AddDays(1).AddSeconds(-1));
+                    return conexionDB.EjecutarConsulta(cmd);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error al generar reporte: " + ex.Message);
+            }
+        }
+
 
         //  CAMBIO: Cotizacion → CotizacionClass
         public CotizacionClass ObtenerCotizacionCompleta(int idCotizacion)
@@ -88,6 +136,7 @@ namespace Inverix.Controllers
                         cot = new CotizacionClass
                         {
                             IdCotizacion = Convert.ToInt32(row["id_cotizacion"]),
+                            IdCotizante = Convert.ToInt32(row["id_cotizante"]),
                             NumeroCotizacion = row["numero_cotizacion"].ToString(),
                             NombreProducto = row["producto"].ToString(),
                             DescripcionPlazo = row["plazo_dias"].ToString(),

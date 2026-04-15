@@ -845,3 +845,334 @@ GO
 ============================================================*/
 
 
+
+
+
+
+
+-- NUEVOS CAMBIOS
+
+ALTER TABLE Cotizantes
+ADD id_usuario INT NULL;
+GO
+
+ALTER TABLE Cotizantes
+ADD CONSTRAINT FK_Cotizantes_Usuario
+FOREIGN KEY (id_usuario) REFERENCES Usuarios(id_usuario);
+GO
+
+ALTER PROCEDURE sp_LoginUsuario @usuario VARCHAR(50), @clave VARCHAR(100)
+AS BEGIN
+    SET NOCOUNT ON
+    SELECT u.id_usuario, u.usuario, r.nombre AS rol, r.codigo AS rolCodigo, c.id_cotizante
+    FROM Usuarios u
+    LEFT JOIN Usuarios_Roles ur ON u.id_usuario = ur.id_usuario
+    LEFT JOIN Roles r ON ur.id_role = r.id_role
+    LEFT JOIN Cotizantes c ON u.id_usuario = c.id_usuario
+    WHERE u.usuario = @usuario 
+      AND u.clave = CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', @clave), 2) 
+      AND u.estado = 1
+END
+GO
+
+
+
+-- Verificar si existe el rol COT, si no, crearlo
+IF NOT EXISTS (SELECT 1 FROM Roles WHERE codigo = 'COT')
+BEGIN
+    INSERT INTO Roles (codigo, nombre, estado, usuario_creacion, fecha_creacion)
+    VALUES ('COT', 'Cotizante', 1, 'Sistema', GETDATE())
+END
+GO
+
+
+
+CREATE PROCEDURE sp_RegistrarCotizanteWeb
+    @usuario VARCHAR(50),
+    @clave VARCHAR(100),
+    @id_tipo_identificacion INT,
+    @identificacion VARCHAR(50),
+    @nombre VARCHAR(100),
+    @primer_apellido VARCHAR(100),
+    @segundo_apellido VARCHAR(100),
+    @correo VARCHAR(100),
+    @telefono VARCHAR(20)
+AS BEGIN
+    SET NOCOUNT ON;
+    DECLARE @idUsuario INT;
+    DECLARE @idRole INT = (SELECT id_role FROM Roles WHERE codigo = 'COT');
+    
+    BEGIN TRY
+        BEGIN TRANSACTION
+        
+        -- 1. Validar que no exista el usuario
+        IF EXISTS (SELECT 1 FROM Usuarios WHERE usuario = @usuario)
+            BEGIN RAISERROR('El nombre de usuario ya está registrado.', 16, 1); RETURN; END
+            
+        -- 2. Validar que no exista la identificación
+        IF EXISTS (SELECT 1 FROM Cotizantes WHERE identificacion = @identificacion)
+            BEGIN RAISERROR('La identificación ya está registrada.', 16, 1); RETURN; END
+        -- 3. Insertar Usuario
+        INSERT INTO Usuarios (usuario, clave, estado, usuario_creacion, fecha_creacion)
+        VALUES (@usuario, CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', @clave), 2), 1, @usuario, GETDATE());
+        
+        SET @idUsuario = SCOPE_IDENTITY();
+        -- 4. Asignar Rol COT
+        INSERT INTO Usuarios_Roles (id_usuario, id_role, usuario_creacion, fecha_creacion)
+        VALUES (@idUsuario, @idRole, @usuario, GETDATE());
+        -- 5. Insertar Cotizante con el FK
+        INSERT INTO Cotizantes (id_tipo_identificacion, identificacion, nombre, primer_apellido, segundo_apellido, correo, telefono, estado, usuario_creacion, fecha_creacion, id_usuario)
+        VALUES (@id_tipo_identificacion, @identificacion, @nombre, @primer_apellido, @segundo_apellido, @correo, @telefono, 1, @usuario, GETDATE(), @idUsuario);
+        COMMIT TRANSACTION
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION
+        DECLARE @ErrMsg NVARCHAR(4000) = ERROR_MESSAGE();
+        RAISERROR(@ErrMsg, 16, 1);
+    END CATCH
+END
+GO
+
+
+
+-- 1. Actualizar el SP de Listar Cotizantes para enviar el IdUsuario y saber quién tiene cuenta
+ALTER PROCEDURE sp_ListarCotizantes
+AS BEGIN
+    SET NOCOUNT ON;
+    SELECT c.id_cotizante AS IdCotizante, 
+           c.id_tipo_identificacion AS IdTipoIdentificacion, 
+           ti.nombre AS TipoIdentificacionNombre,
+           c.identificacion AS Identificacion, 
+           c.nombre AS Nombre, 
+           c.primer_apellido AS PrimerApellido, 
+           c.segundo_apellido AS SegundoApellido, 
+           c.correo AS Correo, 
+           c.telefono AS Telefono, 
+           c.estado AS Estado,
+           c.usuario_creacion AS UsuarioCreacion, 
+           c.fecha_creacion AS FechaCreacion, 
+           c.usuario_modificacion AS UsuarioModificacion, 
+           c.fecha_modificacion AS FechaModificacion,
+           c.id_usuario AS IdUsuario
+    FROM Cotizantes c
+    INNER JOIN Tipo_Identificacion ti ON c.id_tipo_identificacion = ti.id_tipo_identificacion
+END
+GO
+-- 2. Crear SP para Generar Acceso a Cotizantes Existentes
+CREATE PROCEDURE sp_GenerarAccesoCotizante
+    @id_cotizante INT,
+    @usuario VARCHAR(50),
+    @clave VARCHAR(100),
+    @usuario_creador VARCHAR(50)
+AS BEGIN
+    SET NOCOUNT ON;
+    DECLARE @idUsuario INT;
+    DECLARE @idRole INT = (SELECT id_role FROM Roles WHERE codigo = 'COT');
+    
+    BEGIN TRY
+        BEGIN TRANSACTION
+        
+        -- Validar que el usuario no exista
+        IF EXISTS (SELECT 1 FROM Usuarios WHERE usuario = @usuario)
+            BEGIN RAISERROR('El nombre de usuario ya está registrado.', 16, 1); RETURN; END
+        -- Insertar Nuevo Usuario
+        INSERT INTO Usuarios (usuario, clave, estado, usuario_creacion, fecha_creacion)
+        VALUES (@usuario, CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', @clave), 2), 1, @usuario_creador, GETDATE());
+        
+        SET @idUsuario = SCOPE_IDENTITY();
+        
+        -- Asignar Rol COT
+        INSERT INTO Usuarios_Roles (id_usuario, id_role, usuario_creacion, fecha_creacion)
+        VALUES (@idUsuario, @idRole, @usuario_creador, GETDATE());
+        
+        -- Actualizar el Cotizante con su nuevo Usuario
+        UPDATE Cotizantes 
+        SET id_usuario = @idUsuario, 
+            usuario_modificacion = @usuario_creador, 
+            fecha_modificacion = GETDATE()
+        WHERE id_cotizante = @id_cotizante;
+        COMMIT TRANSACTION
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION
+        DECLARE @ErrMsg NVARCHAR(4000) = ERROR_MESSAGE();
+        RAISERROR(@ErrMsg, 16, 1);
+    END CATCH
+END
+GO
+
+
+-- 1. Modificar sp_ListarUsuarios para que traiga el id_role y permitir edición
+ALTER PROCEDURE sp_ListarUsuarios
+AS BEGIN
+    SET NOCOUNT ON
+    SELECT u.id_usuario, u.usuario, u.estado, r.nombre AS rol, ur.id_role
+    FROM Usuarios u
+    LEFT JOIN Usuarios_Roles ur ON u.id_usuario = ur.id_usuario
+    LEFT JOIN Roles r ON ur.id_role = r.id_role
+END
+GO
+
+
+--2. Crear procedimiento para actualizar rol de forma dinámica en vista Edición
+CREATE PROCEDURE sp_ActualizarRolUsuario 
+    @id_usuario INT, 
+    @id_role INT, 
+    @usuario_modificacion VARCHAR(50)
+AS BEGIN
+    SET NOCOUNT ON
+    
+    IF EXISTS (SELECT 1 FROM Usuarios_Roles WHERE id_usuario = @id_usuario)
+    BEGIN
+        UPDATE Usuarios_Roles 
+        SET id_role = @id_role, 
+            usuario_modificacion = @usuario_modificacion, 
+            fecha_modificacion = GETDATE() 
+        WHERE id_usuario = @id_usuario
+    END
+    ELSE
+    BEGIN
+        -- Por si el usuario por error se guardó sin rol
+        INSERT INTO Usuarios_Roles (id_usuario, id_role, usuario_creacion) 
+        VALUES (@id_usuario, @id_role, @usuario_modificacion)
+    END
+END
+GO
+
+
+
+CREATE PROCEDURE sp_ActualizarClave
+    @id_usuario INT,
+    @clave_actual NVARCHAR(255),
+    @clave_nueva NVARCHAR(255)
+AS BEGIN
+    SET NOCOUNT ON
+    -- Verificar que la clave actual sea correcta
+    IF EXISTS (
+        SELECT 1 FROM Usuarios
+        WHERE id_usuario = @id_usuario
+          AND clave = HASHBYTES('SHA2_256', @clave_actual)
+    )
+    BEGIN
+        UPDATE Usuarios
+        SET clave = HASHBYTES('SHA2_256', @clave_nueva),
+            fecha_modificacion = GETDATE()
+        WHERE id_usuario = @id_usuario
+        SELECT 1 AS resultado, 'Contraseña actualizada correctamente.' AS mensaje
+    END
+    ELSE
+    BEGIN
+        SELECT 0 AS resultado, 'La contraseña actual es incorrecta.' AS mensaje
+    END
+END
+GO
+
+
+ALTER PROCEDURE sp_LoginUsuario 
+    @usuario VARCHAR(50), 
+    @clave VARCHAR(100)
+AS BEGIN
+    SET NOCOUNT ON
+    SELECT 
+        u.id_usuario, 
+        u.usuario, 
+        r.nombre AS rol,
+        r.codigo  AS rolCodigo,
+        co.id_cotizante
+    FROM Usuarios u
+    LEFT JOIN Usuarios_Roles ur ON u.id_usuario = ur.id_usuario
+    LEFT JOIN Roles r           ON ur.id_role   = r.id_role
+    LEFT JOIN Cotizantes co     ON co.id_usuario = u.id_usuario
+    WHERE u.usuario = @usuario 
+      AND u.clave = CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', @clave), 2) 
+      AND u.estado = 1
+END
+GO
+
+
+
+
+ALTER VIEW vw_TasasProductos AS
+SELECT 
+    t.id_tasa, 
+    t.id_producto, 
+    p.nombre AS nombre_producto, 
+    t.id_plazo, 
+    pl.dias, 
+    t.porcentaje, 
+    t.estado,
+    m.nombre AS nombre_moneda, -- Nueva columna
+    t.usuario_creacion, 
+    t.fecha_creacion, 
+    t.usuario_modificacion, 
+    t.fecha_modificacion
+FROM Tasas t
+INNER JOIN Productos p  ON t.id_producto = p.id_producto
+INNER JOIN Plazos    pl ON t.id_plazo    = pl.id_plazo
+INNER JOIN Monedas   m  ON p.id_moneda   = m.id_moneda
+GO
+
+
+
+
+
+-- 1. ACTUALIZAR VISTA DE TASAS (Para ver la Moneda en Finanzas)
+ALTER VIEW vw_TasasProductos AS
+SELECT 
+    t.id_tasa, 
+    t.id_producto, 
+    p.nombre AS nombre_producto, 
+    t.id_plazo, 
+    pl.dias, 
+    t.porcentaje, 
+    t.estado,
+    m.nombre AS nombre_moneda, -- Se agrega columna moneda
+    t.usuario_creacion, 
+    t.fecha_creacion, 
+    t.usuario_modificacion, 
+    t.fecha_modificacion
+FROM Tasas t
+INNER JOIN Productos p  ON t.id_producto = p.id_producto
+INNER JOIN Plazos    pl ON t.id_plazo    = pl.id_plazo
+INNER JOIN Monedas   m  ON p.id_moneda   = m.id_moneda
+GO
+-- 2. ACTUALIZAR VISTA DE HISTORIAL (Para que el sistema sepa de quién es cada cotización)
+ALTER VIEW vw_HistorialCotizaciones AS
+SELECT
+    c.id_cotizacion,
+    c.id_cotizante, -- Se agrega esta columna vital para seguridad
+    c.numero_cotizacion,
+    c.fechaCotizacion,
+    u.usuario,
+    p.nombre AS producto,
+    m.codigo AS moneda,
+    pl.descripcion AS plazo,
+    co.nombre + ' ' + co.primer_apellido + ' ' + co.segundo_apellido AS cotizante,
+    co.identificacion,
+    c.monto,
+    c.tasaAplicada AS tasa,
+    c.montoTotalInteresBruto AS montoTotalInteres,
+    c.montoTotalImpuesto,
+    c.montoTotalNeto
+FROM Cotizaciones c
+INNER JOIN Usuarios   u  ON c.idUsuario    = u.id_usuario
+INNER JOIN Productos  p  ON c.id_producto  = p.id_producto
+INNER JOIN Monedas    m  ON p.id_moneda    = m.id_moneda
+INNER JOIN Plazos     pl ON c.id_plazo     = pl.id_plazo
+INNER JOIN Cotizantes co ON c.id_cotizante = co.id_cotizante
+GO
+-- 3. ACTUALIZAR PROCEDIMIENTO DE OBTENCIÓN (Para que la edición funcione)
+ALTER PROCEDURE sp_ObtenerCotizacion @id_cotizacion INT
+AS BEGIN
+    SET NOCOUNT ON
+    SELECT c.id_cotizacion, c.id_cotizante, -- Se agrega columna vital
+        c.numero_cotizacion, u.usuario, p.nombre AS producto, pl.dias AS plazo_dias,
+        c.fechaCotizacion, c.fechaInicio, c.fechaFinal, c.monto, c.tasaAplicada, c.porcentajeImpuesto,
+        c.montoTotalInteresBruto, c.montoTotalImpuesto, c.montoTotalNeto
+    FROM Cotizaciones c
+    INNER JOIN Usuarios  u  ON c.idUsuario   = u.id_usuario
+    INNER JOIN Productos p  ON c.id_producto = p.id_producto
+    INNER JOIN Plazos    pl ON c.id_plazo    = pl.id_plazo
+    WHERE c.id_cotizacion = @id_cotizacion
+END
+GO

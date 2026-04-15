@@ -38,6 +38,7 @@ namespace Inverix.Controllers
                             IdPlazo = dt.Columns.Contains("id_plazo") ? Convert.ToInt32(row["id_plazo"]) : 0,
                             PlazoDias = dt.Columns.Contains("dias") ? Convert.ToInt32(row["dias"]) : 0,
                             Porcentaje = dt.Columns.Contains("porcentaje") ? Convert.ToDecimal(row["porcentaje"]) : 0,
+                            NombreMoneda = dt.Columns.Contains("nombre_moneda") ? row["nombre_moneda"].ToString() : string.Empty,
                             Estado = dt.Columns.Contains("estado") ? Convert.ToBoolean(row["estado"]) : false,
 
                             // Auditoría
