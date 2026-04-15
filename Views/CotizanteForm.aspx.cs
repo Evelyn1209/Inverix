@@ -1,6 +1,7 @@
 using System;
 using System.Data;
 using System.Web.UI.WebControls;
+using Inverix.Classes;
 
 namespace Inverix.Views
 {
@@ -529,28 +530,53 @@ namespace Inverix.Views
             CargarReporte();
         }
 
+        private DataTable ObtenerDatosReporte()
+        {
+            DateTime? desde = null, hasta = null;
+            DateTime tmp;
+            if (DateTime.TryParse(txtFechaDesde.Text, out tmp)) desde = tmp;
+            if (DateTime.TryParse(txtFechaHasta.Text, out tmp)) hasta = tmp;
+
+            int idCotizante = GetIdCotizante();
+            Inverix.Controllers.CotizacionController cotCtrl = new Inverix.Controllers.CotizacionController();
+            return cotCtrl.ObtenerParaReporte(idCotizante, desde, hasta);
+        }
+
         protected void btnReporteExcel_Click(object sender, EventArgs e)
         {
             try
             {
-                Response.Clear();
-                Response.Buffer = true;
-                Response.AddHeader("content-disposition", "attachment;filename=ReporteInverix.xls");
-                Response.Charset = "";
-                Response.ContentType = "application/vnd.ms-excel";
-
-                using (System.IO.StringWriter sw = new System.IO.StringWriter())
+                DataTable dt = ObtenerDatosReporte();
+                if (dt.Rows.Count == 0)
                 {
-                    using (System.Web.UI.HtmlTextWriter hw = new System.Web.UI.HtmlTextWriter(sw))
-                    {
-                        gvReporte.RenderControl(hw);
-                        Response.Output.Write(sw.ToString());
-                        Response.Flush();
-                        Response.End();
-                    }
+                    MostrarMensaje(lblMensajeReporte, "No hay datos para exportar.", true);
+                    return;
                 }
+                ReporteClass.GenerarExcel(dt, "Reporte de Cotizaciones", Response);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                MostrarMensaje(lblMensajeReporte, "Error al generar Excel: " + ex.Message, true);
+            }
+        }
+
+        protected void btnReportePDF_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                DataTable dt = ObtenerDatosReporte();
+                if (dt.Rows.Count == 0)
+                {
+                    MostrarMensaje(lblMensajeReporte, "No hay datos para exportar.", true);
+                    return;
+                }
+                string nombre = Session["NombreCompletoCot"] != null ? Session["NombreCompletoCot"].ToString() : "Cotizante";
+                ReporteClass.GenerarPDF(dt, "Reporte Historial de Cotizaciones", nombre, Response);
+            }
+            catch (Exception ex)
+            {
+                MostrarMensaje(lblMensajeReporte, "Error al generar PDF: " + ex.Message, true);
+            }
         }
 
         public override void VerifyRenderingInServerForm(System.Web.UI.Control control) { }

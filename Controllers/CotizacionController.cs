@@ -84,13 +84,18 @@ namespace Inverix.Controllers
             try
             {
                 string sql = @"
-                    SELECT v.numero_cotizacion AS NumeroCotizacion, v.producto AS NombreProducto,
-                           v.fechaCotizacion AS FechaCotizacion, v.monto AS Monto,
-                           v.montoTotalNeto AS MontoTotalNeto,
+                    SELECT v.id_cotizacion AS IdCotizacion,
+                           v.numero_cotizacion AS NumeroCotizacion, v.producto AS NombreProducto,
+                           v.fechaCotizacion AS FechaCotizacion, 
+                           c.tasaAplicada AS Tasa,
+                           v.monto AS Inversion,
+                           c.montoTotalInteresBruto AS InteresBruto,
+                           c.montoTotalImpuesto AS Impuesto,
+                           v.montoTotalNeto AS GananciaNeta,
                            c.usuario_creacion AS UsuarioCreacion, c.fecha_creacion AS FechaCreacion
                     FROM vw_HistorialCotizaciones v
                     INNER JOIN Cotizaciones c ON v.id_cotizacion = c.id_cotizacion
-                    WHERE c.id_cotizante = @id_cotizante AND c.estado = 1
+                    WHERE (c.id_cotizante = @id_cotizante OR @id_cotizante = 0) AND c.estado = 1
                 ";
 
                 if (desde.HasValue) sql += " AND c.fechaCotizacion >= @desde";

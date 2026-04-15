@@ -198,6 +198,9 @@
                     <h3 class="menu-title">Cotizaciones</h3>
                     <asp:LinkButton ID="lnkNuevaCotizacion" runat="server" CssClass="menu-link" OnClick="lnkNuevaCotizacion_Click">Nueva Cotizacion</asp:LinkButton>
                     <asp:LinkButton ID="lnkListaCotizaciones" runat="server" CssClass="menu-link" OnClick="lnkListaCotizaciones_Click">Mis Cotizaciones</asp:LinkButton>
+                    
+                    <h3 class="menu-title">Reportes</h3>
+                    <asp:LinkButton ID="lnkReportesAdmin" runat="server" CssClass="menu-link" OnClick="lnkReportesAdmin_Click">Reportes Estrategicos</asp:LinkButton>
 
                     <div class="sidebar-footer">
                         <asp:Button ID="btnCerrarSesion" runat="server"
@@ -864,7 +867,7 @@
     </div>
 </asp:Panel>
 
-<!-- ================= NUEVA COTIZACIÃ“N ================= -->
+<!-- ================= NUEVA COTIZACION ================= -->
 <asp:Panel ID="pnlNuevaCotizacion" runat="server" Visible="false">
     <div class="card">
         <div class="card-header"><h3 class="card-title">Generador de Cotizaciones</h3></div>
@@ -1024,7 +1027,7 @@
             </div>
         </asp:Panel>
 
-        <!-- Panel Editar CotizaciÃ³n -->
+        <!-- Panel Editar Cotizacion -->
         <asp:Panel ID="pnlEditarCotizacion" runat="server" Visible="false"
             style="margin-top:20px; border-top:2px solid #1693A5; padding-top:15px;">
             <h4 style="color:#1693A5;">Editar Cotizacion</h4>
@@ -1063,7 +1066,7 @@
             </script>
 
             <div style="margin-top:15px;">
-                <asp:Button ID="btnActualizarCotizacion" runat="server" Text="Actualizar Cotizaci&oacute;n"
+                <asp:Button ID="btnActualizarCotizacion" runat="server" Text="Actualizar Cotizacion"
                     CssClass="btn-primary" OnClick="btnActualizarCotizacion_Click" />
                 <asp:Button ID="btnCancelarEdicion" runat="server" Text="Cancelar"
                     CssClass="btn-secondary" OnClick="btnCancelarEdicion_Click"
@@ -1075,6 +1078,56 @@
 
 </div>
 
+                <!-- ================= REPORTES ADMINISTRATIVOS ================= -->
+                <asp:Panel ID="pnlReportesAdmin" runat="server" Visible="false">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Reportes Estrategicos</h3>
+                            <div style="display:flex; gap:10px;">
+                                <asp:Button ID="btnReportePDFAdmin" runat="server" Text="&#128438; Exportar PDF" CssClass="btn-secondary" OnClick="btnReportePDFAdmin_Click" />
+                                <asp:Button ID="btnReporteExcelAdmin" runat="server" Text="Exportar Excel" CssClass="btn-secondary" OnClick="btnReporteExcelAdmin_Click" />
+                            </div>
+                        </div>
+
+                        <!-- Filtros -->
+                        <div style="display:flex; align-items:center; gap:15px; flex-wrap:wrap; margin:15px; padding:15px; background:#f9f9f9; border:1px solid #eee; border-radius:6px;">
+                            <div style="display:block;">
+                                <label class="form-label">Filtrar por Cotizante:</label>
+                                <asp:DropDownList ID="ddlReporteCotizante" runat="server" CssClass="form-input" DataTextField="Nombre" DataValueField="IdCotizante" style="min-width:250px;"></asp:DropDownList>
+                            </div>
+                            <div style="display:block;">
+                                <label class="form-label">Desde:</label>
+                                <asp:TextBox ID="txtFechaDesdeAdmin" runat="server" CssClass="form-input" TextMode="Date"></asp:TextBox>
+                            </div>
+                            <div style="display:block;">
+                                <label class="form-label">Hasta:</label>
+                                <asp:TextBox ID="txtFechaHastaAdmin" runat="server" CssClass="form-input" TextMode="Date"></asp:TextBox>
+                            </div>
+                            <div style="display:block; align-self:flex-end;">
+                                <asp:Button ID="btnFiltrarReporteAdmin" runat="server" Text="Ver Reporte" CssClass="btn-primary" OnClick="btnFiltrarReporteAdmin_Click" />
+                            </div>
+                        </div>
+
+                        <asp:Label ID="lblMensajeReporteAdmin" runat="server" CssClass="error-message" style="margin-left:15px;"></asp:Label>
+
+                        <div class="card-content" style="overflow-x:auto;">
+                            <asp:GridView ID="gvReporteAdmin" runat="server" AutoGenerateColumns="False" CssClass="table-modern" DataKeyNames="IdCotizacion">
+                                <Columns>
+                                    <asp:BoundField DataField="NumeroCotizacion" HeaderText="Nro. Cotizaci&oacute;n" />
+                                    <asp:BoundField DataField="NombreProducto" HeaderText="Producto" />
+                                    <asp:BoundField DataField="FechaCotizacion" HeaderText="Fecha" DataFormatString="{0:dd/MM/yyyy}" />
+                                    <asp:BoundField DataField="Tasa" HeaderText="Tasa (%)" DataFormatString="{0:N2}%" />
+                                    <asp:BoundField DataField="Inversion" HeaderText="Inversi&oacute;n" DataFormatString="{0:N2}" />
+                                    <asp:BoundField DataField="InteresBruto" HeaderText="Int. Bruto" DataFormatString="{0:N2}" />
+                                    <asp:BoundField DataField="Impuesto" HeaderText="Impuesto" DataFormatString="{0:N2}" />
+                                    <asp:BoundField DataField="GananciaNeta" HeaderText="Ganancia Neta" DataFormatString="{0:N2}" />
+                                    <asp:BoundField DataField="UsuarioCreacion" HeaderText="Usuario" />
+                                    <asp:BoundField DataField="FechaCreacion" HeaderText="Fecha Reg." DataFormatString="{0:dd/MM/yyyy}" />
+                                </Columns>
+                            </asp:GridView>
+                        </div>
+                    </div>
+                </asp:Panel>
 
                 </div>
 

@@ -55,11 +55,7 @@ namespace Inverix.Views
                         case "Roles": CargarRoles(); pnlRoles.Visible = true; break;
                         case "NuevaCotizacion": pnlNuevaCotizacion.Visible = true; break;
                         case "ListaCotizaciones": pnlListaCotizaciones.Visible = true; break;
-
-
-
-
-
+                        case "ReportesAdmin": pnlReportesAdmin.Visible = true; break;
                         default: pnlInicio.Visible = true; break;
                     }
                 }
@@ -83,6 +79,10 @@ namespace Inverix.Views
                     string filtroCotizante = Session["FiltroCotizante"] != null ? Session["FiltroCotizante"].ToString() : null;
                     string filtroNumero = Session["FiltroNumeroCotizacion"] != null ? Session["FiltroNumeroCotizacion"].ToString() : null;
                     CargarCotizaciones(filtroCotizante, filtroNumero);
+                }
+                if (panelActivo == "ReportesAdmin")
+                {
+                    CargarReporteAdmin(false);
                 }
 
 
@@ -235,6 +235,7 @@ namespace Inverix.Views
             pnlCotizantes.Visible = false;
             pnlNuevaCotizacion.Visible = false;
             pnlListaCotizaciones.Visible = false;
+            if (pnlReportesAdmin != null) pnlReportesAdmin.Visible = false;
         }
 
         protected void lnkInicio_Click(object sender, EventArgs e)
@@ -322,6 +323,15 @@ namespace Inverix.Views
             pnlDetallesView.Visible = false;
             CargarFiltroCotizantes();
             CargarCotizaciones();
+        }
+
+        protected void lnkReportesAdmin_Click(object sender, EventArgs e)
+        {
+            Session["PanelActivo"] = "ReportesAdmin";
+            OcultarTodosLosPaneles();
+            pnlReportesAdmin.Visible = true;
+            CargarCotizantesReporte();
+            CargarReporteAdmin(true);
         }
 
         // ================= PRODUCTOS =================
@@ -2424,6 +2434,105 @@ namespace Inverix.Views
                 return $"Hay campos obligatorios vacíos. Por favor complete todos los datos requeridos.";
             // Genérico amigable
             return $"Ocurrió un error al guardar el {entidad}. Por favor intente de nuevo.";
+        }
+
+        // ==========================================
+        //  REPORTES ADMINISTRATIVOS
+        // ==========================================
+        private void CargarCotizantesReporte()
+        {
+            try
+            {
+                CotizanteController cCtrl = new CotizanteController();
+                var lista = cCtrl.ObtenerTodos();
+                
+                ddlReporteCotizante.Items.Clear();
+                ddlReporteCotizante.DataSource = lista;
+                ddlReporteCotizante.DataTextField = "Nombre";
+                ddlReporteCotizante.DataValueField = "IdCotizante";
+                ddlReporteCotizante.DataBind();
+                
+                ddlReporteCotizante.Items.Insert(0, new ListItem("-- Todos los Cotizantes --", "0"));
+            }
+            catch { }
+        }
+
+        private void CargarReporteAdmin(bool force)
+        {
+            try
+            {
+                if (!force && gvReporteAdmin.Rows.Count > 0) return;
+
+                int idCotizante = Convert.ToInt32(ddlReporteCotizante.SelectedValue);
+                DateTime? desde = null;
+                DateTime? hasta = null;
+
+                if (!string.IsNullOrEmpty(txtFechaDesdeAdmin.Text)) desde = Convert.ToDateTime(txtFechaDesdeAdmin.Text);
+                if (!string.IsNullOrEmpty(txtFechaHastaAdmin.Text)) hasta = Convert.ToDateTime(txtFechaHastaAdmin.Text);
+
+                CotizacionController cCtrl = new CotizacionController();
+                DataTable dt = cCtrl.ObtenerParaReporte(idCotizante, desde, hasta);
+                
+                gvReporteAdmin.DataSource = dt;
+                gvReporteAdmin.DataBind();
+
+                if (dt.Rows.Count == 0)
+                    lblMensajeReporteAdmin.Text = "No hay datos para los filtros seleccionados.";
+                else
+                    lblMensajeReporteAdmin.Text = "";
+            }
+            catch (Exception ex)
+            {
+                lblMensajeReporteAdmin.Text = "Error: " + ex.Message;
+            }
+        }
+
+        protected void btnFiltrarReporteAdmin_Click(object sender, EventArgs e)
+        {
+            CargarReporteAdmin(true);
+        }
+
+        protected void btnReportePDFAdmin_Click(object sender, EventArgs e)
+        {
+            ExportarReporteAdmin("PDF");
+        }
+
+        protected void btnReporteExcelAdmin_Click(object sender, EventArgs e)
+        {
+            ExportarReporteAdmin("Excel");
+        }
+
+        private void ExportarReporteAdmin(string formato)
+        {
+            try
+            {
+                int idCotizante = Convert.ToInt32(ddlReporteCotizante.SelectedValue);
+                DateTime? desde = null;
+                DateTime? hasta = null;
+                if (!string.IsNullOrEmpty(txtFechaDesdeAdmin.Text)) desde = Convert.ToDateTime(txtFechaDesdeAdmin.Text);
+                if (!string.IsNullOrEmpty(txtFechaHastaAdmin.Text)) hasta = Convert.ToDateTime(txtFechaHastaAdmin.Text);
+
+                CotizacionController cCtrl = new CotizacionController();
+                DataTable dt = cCtrl.ObtenerParaReporte(idCotizante, desde, hasta);
+
+                if (dt.Rows.Count == 0)
+                {
+                    lblMensajeReporteAdmin.Text = "No hay datos para exportar.";
+                    return;
+                }
+
+                string nombreReporte = (idCotizante == 0) ? "Reporte Global Financiero" : "Reporte Financiero por Cliente";
+                string nombreFirma = (idCotizante == 0) ? "Corte Administrativo General" : ddlReporteCotizante.SelectedItem.Text;
+
+                if (formato == "PDF")
+                    ReporteClass.GenerarPDF(dt, nombreReporte, nombreFirma, Response);
+                else
+                    ReporteClass.GenerarExcel(dt, nombreReporte, Response);
+            }
+            catch (Exception ex)
+            {
+                lblMensajeReporteAdmin.Text = "Error al exportar: " + ex.Message;
+            }
         }
     }
 }

@@ -201,7 +201,7 @@
                 <div class="card-header">
                     <h3 class="card-title">Mis Reportes</h3>
                     <div style="display:flex; gap:10px;">
-                        <asp:Button ID="btnReportePDF" runat="server" Text="&#128438; Imprimir Reporte" CssClass="btn-secondary" OnClientClick="imprimirReporte(); return false;" />
+                        <asp:Button ID="btnReportePDF" runat="server" Text="&#128438; Exportar PDF" CssClass="btn-secondary" OnClick="btnReportePDF_Click" />
                         <asp:Button ID="btnReporteExcel" runat="server" Text="Exportar Excel" CssClass="btn-secondary" OnClick="btnReporteExcel_Click" />
                     </div>
                 </div>
@@ -224,10 +224,13 @@
                         <asp:BoundField DataField="NumeroCotizacion" HeaderText="Nro. Cotizaci&oacute;n" />
                         <asp:BoundField DataField="NombreProducto" HeaderText="Producto" />
                         <asp:BoundField DataField="FechaCotizacion" HeaderText="Fecha" DataFormatString="{0:dd/MM/yyyy}" />
-                        <asp:BoundField DataField="Monto" HeaderText="Monto" DataFormatString="{0:N2}" />
-                        <asp:BoundField DataField="MontoTotalNeto" HeaderText="Total Neto" DataFormatString="{0:N2}" />
-                        <asp:BoundField DataField="UsuarioCreacion" HeaderText="Creado Por" />
-                        <asp:BoundField DataField="FechaCreacion" HeaderText="Fecha Creaci&oacute;n" DataFormatString="{0:dd/MM/yyyy}" />
+                        <asp:BoundField DataField="Tasa" HeaderText="Tasa (%)" DataFormatString="{0:N2}%" />
+                        <asp:BoundField DataField="Inversion" HeaderText="Inversi&oacute;n" DataFormatString="{0:N2}" />
+                        <asp:BoundField DataField="InteresBruto" HeaderText="Int. Bruto" DataFormatString="{0:N2}" />
+                        <asp:BoundField DataField="Impuesto" HeaderText="Impuesto" DataFormatString="{0:N2}" />
+                        <asp:BoundField DataField="GananciaNeta" HeaderText="Ganancia Neta" DataFormatString="{0:N2}" />
+                        <asp:BoundField DataField="UsuarioCreacion" HeaderText="Usuario" />
+                        <asp:BoundField DataField="FechaCreacion" HeaderText="Fecha Reg." DataFormatString="{0:dd/MM/yyyy}" />
                     </Columns>
                 </asp:GridView>
             </div>
