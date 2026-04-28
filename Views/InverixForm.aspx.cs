@@ -2069,16 +2069,29 @@ namespace Inverix.Views
             pnlLogin.Visible = false;
             pnlRegistro.Visible = true;
             lblMensajeRegistro.Text = "";
+            btnVolverLogin.Text = "Volver al Login";
 
             // Cargar los tipos de identificacion en el DropDown
             CargarTiposIdentificacionRegistro();
         }
         protected void btnVolverLogin_Click(object sender, EventArgs e)
         {
-            // Ocultar Registro y volver a Login
             pnlRegistro.Visible = false;
-            pnlLogin.Visible = true;
             lblMensaje.Text = "";
+            lblMensajeRegistro.Text = "";
+
+            if (Session["Usuario"] != null)
+            {
+                pnlSistema.Visible = true;
+                Session["PanelActivo"] = "Usuarios";
+                OcultarTodosLosPaneles();
+                CargarUsuarios();
+                pnlUsuarios.Visible = true;
+            }
+            else
+            {
+                pnlLogin.Visible = true;
+            }
         }
         protected void btnRegistrar_Click(object sender, EventArgs e)
         {
@@ -2194,11 +2207,39 @@ namespace Inverix.Views
                 );
                 if (exito)
                 {
-                    // Si todo salió bien, limpiar formulario, volver al login y mostrar mensaje de éxito
                     pnlRegistro.Visible = false;
-                    pnlLogin.Visible = true;
-                    lblMensaje.Text = "¡Cuenta creada con éxito! Ahora puede iniciar sesión.";
-                    lblMensaje.ForeColor = System.Drawing.Color.Green;
+                    
+                    // Limpiar
+                    txtRegUsuario.Text = "";
+                    txtRegClave.Text = "";
+                    txtRegConfirmarClave.Text = "";
+                    txtRegIdentificacion.Text = "";
+                    txtRegNombre.Text = "";
+                    txtRegPrimerApellido.Text = "";
+                    txtRegSegundoApellido.Text = "";
+                    txtRegCorreo.Text = "";
+                    txtRegTelefono.Text = "";
+
+                    if (Session["Usuario"] != null)
+                    {
+                        pnlSistema.Visible = true;
+                        Session["PanelActivo"] = "Usuarios";
+                        OcultarTodosLosPaneles();
+                        CargarUsuarios();
+                        pnlUsuarios.Visible = true;
+                        
+                        lblMensajeUsuario.Text = "Usuario registrado exitosamente con info personal (Rol: COT).";
+                        lblMensajeUsuario.Style["background-color"] = "#d4edda";
+                        lblMensajeUsuario.Style["color"] = "#155724";
+                        lblMensajeUsuario.Style["display"] = "block";
+                        lblMensajeUsuario.Visible = true;
+                    }
+                    else
+                    {
+                        pnlLogin.Visible = true;
+                        lblMensaje.Text = "¡Cuenta creada con éxito! Ahora puede iniciar sesión.";
+                        lblMensaje.ForeColor = System.Drawing.Color.Green;
+                    }
                 }
             }
             catch (Exception ex)
@@ -2276,12 +2317,22 @@ namespace Inverix.Views
 
         protected void btnNuevoUsuario_Click(object sender, EventArgs e)
         {
-            LimpiarFormularioUsuario();
-            CargarRolesDropdown();
-            lblTituloFormularioUsuario.InnerText = "Nuevo Usuario";
-            divClaveUsuario.Visible = true;
-            pnlFormUsuario.Visible = true;
-            lblMensajeUsuario.Visible = false;
+            pnlSistema.Visible = false;
+            pnlRegistro.Visible = true;
+            lblMensajeRegistro.Text = "";
+            btnVolverLogin.Text = "Cancelar y Volver";
+            
+            txtRegUsuario.Text = "";
+            txtRegClave.Text = "";
+            txtRegConfirmarClave.Text = "";
+            txtRegIdentificacion.Text = "";
+            txtRegNombre.Text = "";
+            txtRegPrimerApellido.Text = "";
+            txtRegSegundoApellido.Text = "";
+            txtRegCorreo.Text = "";
+            txtRegTelefono.Text = "";
+
+            CargarTiposIdentificacionRegistro();
         }
 
         private void LimpiarFormularioUsuario()
@@ -2289,6 +2340,7 @@ namespace Inverix.Views
             hfIdUsuario.Value = string.Empty;
             txtNombreUsuario.Text = string.Empty;
             txtClaveUsuario.Text = string.Empty;
+            lblAvisoPrivacidadClave.Visible = false;
             if (ddlRolUsuario.Items.Count > 0) ddlRolUsuario.SelectedIndex = 0;
         }
 
@@ -2315,8 +2367,14 @@ namespace Inverix.Views
                 } catch { }
             }
 
-            lblTituloFormularioUsuario.InnerText = "Editar Usuario (La clave no se puede ver ni editar aquí)";
-            divClaveUsuario.Visible = false;
+            lblTituloFormularioUsuario.InnerText = "Editar Usuario (Para cambiar la clave digite la nueva, o deje en blanco)";
+            divClaveUsuario.Visible = true;
+            txtClaveUsuario.Text = string.Empty;
+
+            // Mostrar aviso de privacidad si se edita una cuenta ajena
+            int idLogueado = Session["IdUsuario"] != null ? Convert.ToInt32(Session["IdUsuario"]) : 0;
+            lblAvisoPrivacidadClave.Visible = (idUsuario != idLogueado);
+
             pnlFormUsuario.Visible = true;
         }
 
@@ -2385,7 +2443,15 @@ namespace Inverix.Views
                 {
                     // Actualizar
                     int idEdit = Convert.ToInt32(hfIdUsuario.Value);
-                    if (uCtrl.Actualizar(idEdit, usuario, idRol, admin))
+                    string claveNueva = txtClaveUsuario.Text.Trim();
+                    
+                    if (!string.IsNullOrEmpty(claveNueva) && claveNueva.Length < 6)
+                    {
+                        MostrarErrorUsuario("La clave nueva debe tener mínimo 6 caracteres.");
+                        return;
+                    }
+
+                    if (uCtrl.Actualizar(idEdit, usuario, idRol, claveNueva, admin))
                     {
                         MostrarExitoUsuario("Usuario actualizado.");
                         pnlFormUsuario.Visible = false;

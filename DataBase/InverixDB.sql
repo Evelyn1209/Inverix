@@ -1176,3 +1176,152 @@ AS BEGIN
     WHERE c.id_cotizacion = @id_cotizacion
 END
 GO
+
+
+
+
+
+
+
+-- mas cambios
+
+
+-- 4. NUEVO PROCEDIMIENTO: VINCULAR USUARIO EXISTENTE A COTIZANTE
+CREATE PROCEDURE sp_VincularUsuarioCotizante
+    @id_cotizante INT,
+    @usuario VARCHAR(50),
+    @usuario_creador VARCHAR(50)
+AS BEGIN
+    SET NOCOUNT ON;
+    DECLARE @idUsuario INT;
+    DECLARE @idRole INT = (SELECT id_role FROM Roles WHERE codigo = 'COT');
+    
+    BEGIN TRY
+        BEGIN TRANSACTION
+        
+        -- 1. Validar que el usuario exista y este activo
+        SELECT @idUsuario = id_usuario FROM Usuarios WHERE usuario = @usuario AND estado = 1;
+        IF @idUsuario IS NULL
+            BEGIN RAISERROR('El usuario no existe o esta inactivo.', 16, 1); RETURN; END
+
+        -- 2. Validar que el usuario no este ya asignado a otro cotizante
+        IF EXISTS (SELECT 1 FROM Cotizantes WHERE id_usuario = @idUsuario AND id_cotizante != @id_cotizante)
+            BEGIN RAISERROR('Este usuario ya esta asignado a otro cotizante.', 16, 1); RETURN; END
+
+        -- 3. Actualizar el Cotizante con el Usuario
+        UPDATE Cotizantes 
+        SET id_usuario = @idUsuario, 
+            usuario_modificacion = @usuario_creador, 
+            fecha_modificacion = GETDATE()
+        WHERE id_cotizante = @id_cotizante;
+
+        -- 4. Asegurar que el usuario tenga el rol COT
+        IF NOT EXISTS (SELECT 1 FROM Usuarios_Roles WHERE id_usuario = @idUsuario AND id_role = @idRole)
+        BEGIN
+            INSERT INTO Usuarios_Roles (id_usuario, id_role, usuario_creacion, fecha_creacion)
+            VALUES (@idUsuario, @idRole, @usuario_creador, GETDATE());
+        END
+        
+        COMMIT TRANSACTION
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION
+        DECLARE @ErrMsg NVARCHAR(4000) = ERROR_MESSAGE();
+        RAISERROR(@ErrMsg, 16, 1);
+    END CATCH
+END
+GO
+
+
+
+-- ACTUALIZACIÓN: FILTRAR COTIZANTES PARA OCULTAR ADMINISTRADORES
+ALTER PROCEDURE sp_ListarCotizantes
+AS BEGIN
+    SET NOCOUNT ON;
+    SELECT c.id_cotizante AS IdCotizante, 
+           c.id_tipo_identificacion AS IdTipoIdentificacion, 
+           ti.nombre AS TipoIdentificacionNombre,
+           c.identificacion AS Identificacion, 
+           c.nombre AS Nombre, 
+           c.primer_apellido AS PrimerApellido, 
+           c.segundo_apellido AS SegundoApellido, 
+           c.correo AS Correo, 
+           c.telefono AS Telefono, 
+           c.estado AS Estado,
+           c.usuario_creacion AS UsuarioCreacion, 
+           c.fecha_creacion AS FechaCreacion, 
+           c.usuario_modificacion AS UsuarioModificacion, 
+           c.fecha_modificacion AS FechaModificacion,
+           c.id_usuario AS IdUsuario
+    FROM Cotizantes c
+    INNER JOIN Tipo_Identificacion ti ON c.id_tipo_identificacion = ti.id_tipo_identificacion
+    LEFT JOIN Usuarios_Roles ur ON c.id_usuario = ur.id_usuario
+    LEFT JOIN Roles r ON ur.id_role = r.id_role
+    WHERE c.estado = 1 
+      AND (c.id_usuario IS NULL OR r.codigo = 'COT')
+    ORDER BY c.primer_apellido, c.nombre
+END
+GO
+
+
+-- ACTUALIZACIÓN: PERMITIR CAMBIO DE CONTRASEÑA EN EDICIÓN DE USUARIO
+ALTER PROCEDURE sp_ActualizarUsuario 
+    @id_usuario INT, 
+    @usuario VARCHAR(50), 
+    @clave_nueva VARCHAR(255) = NULL, 
+    @usuario_modificacion VARCHAR(50)
+AS BEGIN
+    SET NOCOUNT ON
+    
+    -- Si enviaron una clave nueva (no esta vacía)
+    IF (@clave_nueva IS NOT NULL AND RTRIM(LTRIM(@clave_nueva)) != '')
+    BEGIN
+        UPDATE Usuarios 
+        SET usuario = @usuario, 
+            clave = HASHBYTES('SHA2_256', @clave_nueva), 
+            usuario_modificacion = @usuario_modificacion, 
+            fecha_modificacion = GETDATE() 
+        WHERE id_usuario = @id_usuario
+    END
+    ELSE
+    -- Si no enviaron clave, se actualiza solo el nombre y la auditoría
+    BEGIN
+        UPDATE Usuarios 
+        SET usuario = @usuario, 
+            usuario_modificacion = @usuario_modificacion, 
+            fecha_modificacion = GETDATE() 
+        WHERE id_usuario = @id_usuario
+    END
+END
+GO
+
+
+-- SCRIPT CORREGIDO: MANTIENE EL FORMATO HEXADECIMAL DE INVERIX
+ALTER PROCEDURE sp_ActualizarUsuario 
+    @id_usuario INT, 
+    @usuario VARCHAR(50), 
+    @clave_nueva VARCHAR(255) = NULL, 
+    @usuario_modificacion VARCHAR(50)
+AS BEGIN
+    SET NOCOUNT ON
+    
+    -- Si enviaron una clave nueva, usamos CONVERT(..., 2) para mantener el formato HEX
+    IF (@clave_nueva IS NOT NULL AND RTRIM(LTRIM(@clave_nueva)) != '')
+    BEGIN
+        UPDATE Usuarios 
+        SET usuario = @usuario, 
+            clave = CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', @clave_nueva), 2), 
+            usuario_modificacion = @usuario_modificacion, 
+            fecha_modificacion = GETDATE() 
+        WHERE id_usuario = @id_usuario
+    END
+    ELSE
+    BEGIN
+        UPDATE Usuarios 
+        SET usuario = @usuario, 
+            usuario_modificacion = @usuario_modificacion, 
+            fecha_modificacion = GETDATE() 
+        WHERE id_usuario = @id_usuario
+    END
+END
+GO

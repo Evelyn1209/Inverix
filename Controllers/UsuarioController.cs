@@ -146,7 +146,7 @@ namespace Inverix.Controllers
             }
         }
 
-        public bool Actualizar(int idUsuario, string usuario, int idRole, string adminLogueado)
+        public bool Actualizar(int idUsuario, string usuario, int idRole, string claveNueva, string adminLogueado)
         {
             try
             {
@@ -155,6 +155,12 @@ namespace Inverix.Controllers
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.AddWithValue("@id_usuario", idUsuario);
                     cmd.Parameters.AddWithValue("@usuario", usuario);
+                    
+                    if (string.IsNullOrEmpty(claveNueva))
+                        cmd.Parameters.AddWithValue("@clave_nueva", DBNull.Value);
+                    else
+                        cmd.Parameters.AddWithValue("@clave_nueva", claveNueva);
+                        
                     cmd.Parameters.AddWithValue("@usuario_modificacion", adminLogueado);
 
                     conexionDB.EjecutarInstruccion(cmd);

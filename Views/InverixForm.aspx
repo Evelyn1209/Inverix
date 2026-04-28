@@ -137,7 +137,6 @@
             </div>
         </asp:Panel>
 
-
         <!-- ================= SISTEMA PRINCIPAL ================= -->
         <asp:Panel ID="pnlSistema" runat="server" 
             Visible="false" CssClass="system-panel">
@@ -197,7 +196,7 @@
 
                     <h3 class="menu-title">Cotizaciones</h3>
                     <asp:LinkButton ID="lnkNuevaCotizacion" runat="server" CssClass="menu-link" OnClick="lnkNuevaCotizacion_Click">Nueva Cotizacion</asp:LinkButton>
-                    <asp:LinkButton ID="lnkListaCotizaciones" runat="server" CssClass="menu-link" OnClick="lnkListaCotizaciones_Click">Mis Cotizaciones</asp:LinkButton>
+                    <asp:LinkButton ID="lnkListaCotizaciones" runat="server" CssClass="menu-link" OnClick="lnkListaCotizaciones_Click">Historial de Cotizaciones</asp:LinkButton>
                     
                     <h3 class="menu-title">Reportes</h3>
                     <asp:LinkButton ID="lnkReportesAdmin" runat="server" CssClass="menu-link" OnClick="lnkReportesAdmin_Click">Reportes Estrategicos</asp:LinkButton>
@@ -409,6 +408,9 @@
             <div class="form-group" id="divClaveUsuario" runat="server">
                 <label>Clave (Mínimo 6 caracteres):</label>
                 <asp:TextBox ID="txtClaveUsuario" runat="server" CssClass="form-input" TextMode="Password"></asp:TextBox>
+                <asp:Label ID="lblAvisoPrivacidadClave" runat="server" Visible="false" style="display:block; margin-top:8px; font-size:12px; color:#856404; background-color:#fff3cd; padding:8px; border:1px solid #ffeeba; border-radius:4px;">
+                    <strong>⚠️ Atención por Seguridad:</strong> Está modificando la contraseña de una cuenta ajena. Este procedimiento debe realizarse excluyentemente de manera presencial junto al propietario del perfil. Por favor, indíquele actualizar su clave de forma autónoma una vez ingrese al sistema para garantizar la estricta confidencialidad de su información. Nadie más debe visualizar la credencial temporal aquí ingresada.
+                </asp:Label>
             </div>
 
             <div class="form-group">
@@ -542,7 +544,7 @@
             <asp:Button ID="btnNuevaTasa" runat="server" Text="+ Nueva Tasa" CssClass="btn-primary" OnClick="btnNuevaTasa_Click" />
         </div>
 
-        <!-- Mensaje de Ã©xito/error (se auto-oculta con JS) -->
+        <!-- Mensaje de error (se auto-oculta con JS) -->
         <div style="margin-bottom:10px;">
             <asp:Label ID="lblMensajeTasas" runat="server" Visible="false"
                 style="display:block; padding:12px 16px; border-radius:6px; font-weight:bold;"></asp:Label>
@@ -728,7 +730,7 @@
             <asp:Button ID="btnNuevoCotizante" runat="server" Text="+ Nuevo Cotizante" CssClass="btn-primary" OnClick="btnNuevoCotizante_Click" />
         </div>
 
-        <!-- Mensaje de Ã©xito/error local para Cotizantes (se auto-oculta con JS) -->
+        <!-- Mensaje de error local para Cotizantes (se auto-oculta con JS) -->
         <div style="margin-bottom:10px;">
             <asp:Label ID="lblMensajeCotizante" runat="server" Visible="false"
                 style="display:block; padding:12px 16px; border-radius:6px; font-weight:bold;"></asp:Label>
@@ -776,7 +778,7 @@
                 <asp:BoundField DataField="UsuarioModificacion" HeaderText="Modificado Por" />
                 <asp:BoundField DataField="FechaModificacion" HeaderText="Fecha Modificacion" DataFormatString="{0:dd/MM/yyyy HH:mm}" />
 
-                                <asp:TemplateField HeaderText="Acceso">
+                <asp:TemplateField HeaderText="Acceso">
                     <ItemTemplate>
                         <asp:LinkButton ID="btnGenerarAcceso" runat="server" CommandName="GenerarAcceso" CommandArgument='<%# Eval("IdCotizante") %>' CssClass="btn-action" ToolTip="Generar Credenciales">
                             &#128273;&#xFE0E;
@@ -904,7 +906,7 @@
 <asp:Panel ID="pnlListaCotizaciones" runat="server" Visible="false">
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">Mis Cotizaciones</h3>
+            <h3 class="card-title">Historial de Cotizaciones</h3>
             <div style="display:flex; gap:10px;">
                 <asp:Button ID="btnExportarExcel" runat="server" Text="Exportar a Excel" CssClass="btn-secondary" OnClick="btnExportarExcel_Click" />
                 <asp:Button ID="btnExportarPDF" runat="server" Text="&#128438; Imprimir" CssClass="btn-secondary" OnClientClick="imprimirCotizaciones(); return false;" />
