@@ -200,6 +200,9 @@
                     
                     <h3 class="menu-title">Reportes</h3>
                     <asp:LinkButton ID="lnkReportesAdmin" runat="server" CssClass="menu-link" OnClick="lnkReportesAdmin_Click">Reportes Estrategicos</asp:LinkButton>
+                    
+                    <h3 class="menu-title">Seguridad</h3>
+                    <asp:LinkButton ID="lnkAuditoria" runat="server" CssClass="menu-link" OnClick="lnkAuditoria_Click">Auditoria del Sistema</asp:LinkButton>
 
                     <div class="sidebar-footer">
                         <asp:Button ID="btnCerrarSesion" runat="server"
@@ -406,7 +409,7 @@
             </div>
             
             <div class="form-group" id="divClaveUsuario" runat="server">
-                <label>Clave (Mínimo 6 caracteres):</label>
+                <label>Clave (Mínimo 8 caracteres):</label>
                 <asp:TextBox ID="txtClaveUsuario" runat="server" CssClass="form-input" TextMode="Password"></asp:TextBox>
                 <asp:Label ID="lblAvisoPrivacidadClave" runat="server" Visible="false" style="display:block; margin-top:8px; font-size:12px; color:#856404; background-color:#fff3cd; padding:8px; border:1px solid #ffeeba; border-radius:4px;">
                     <strong>⚠️ Atención por Seguridad:</strong> Está modificando la contraseña de una cuenta ajena. Este procedimiento debe realizarse excluyentemente de manera presencial junto al propietario del perfil. Por favor, indíquele actualizar su clave de forma autónoma una vez ingrese al sistema para garantizar la estricta confidencialidad de su información. Nadie más debe visualizar la credencial temporal aquí ingresada.
@@ -695,9 +698,10 @@
             <asp:HiddenField ID="hfIdPlazo" runat="server" />
             
 <div class="form-group">
-    <label>Cantidad de DÃ­as:</label>
+    <label>Cantidad de Dias:</label>
     <asp:TextBox ID="txtDiasPlazo" runat="server" 
         TextMode="Number" ReadOnly="true"
+        Visible="false"
         style="background-color: #e9ecef; color: #495057; cursor: not-allowed; border: 1px solid #ced4da; padding: 5px; border-radius: 4px;">
     </asp:TextBox>
 </div>
@@ -907,10 +911,6 @@
     <div class="card">
         <div class="card-header">
             <h3 class="card-title">Historial de Cotizaciones</h3>
-            <div style="display:flex; gap:10px;">
-                <asp:Button ID="btnExportarExcel" runat="server" Text="Exportar a Excel" CssClass="btn-secondary" OnClick="btnExportarExcel_Click" />
-                <asp:Button ID="btnExportarPDF" runat="server" Text="&#128438; Imprimir" CssClass="btn-secondary" OnClientClick="imprimirCotizaciones(); return false;" />
-            </div>
         </div>
 
         <!-- Mensaje de error (se auto-oculta con JS) -->
@@ -943,56 +943,9 @@
             <asp:Button ID="btnVerTodos" runat="server" Text="Ver Todos" CssClass="btn-secondary" OnClick="btnVerTodos_Click" />
         </div>
 
-        <script type="text/javascript">
-            function imprimirCotizaciones() {
-                var printWindow = window.open('', 'PrintWindow', 'width=900,height=700');
-                printWindow.document.write('<html><head><title>Reporte Inverix</title>');
-                printWindow.document.write('<style>');
-                printWindow.document.write('body { font-family: "Times New Roman", serif; padding: 20px; color: #000; }');
-                printWindow.document.write('h2 { color: #1693A5; border-bottom: 2px solid #1693A5; padding-bottom:8px; }');
-                printWindow.document.write('h4 { color: #1693A5; margin-top:24px; }');
-                printWindow.document.write('table { border-collapse: collapse; width: 100%; margin-top: 10px; font-size:13px; }');
-                printWindow.document.write('th { background-color: #1693A5; color: white; padding: 8px; text-align: left; }');
-                printWindow.document.write('td { border: 1px solid #ddd; padding: 7px; }');
-                printWindow.document.write('tr:nth-child(even) { background-color: #f9f9f9; }');
-                printWindow.document.write('.last-col { display: none; }');
-                printWindow.document.write('tfoot td { background-color: #1693A5; color: white; font-weight: bold; }');
-                printWindow.document.write('@media print { button { display:none; } }');
-                printWindow.document.write('</style></head><body>');
-                printWindow.document.write('<h2>Reporte de Cotizaciones &mdash; Inverix</h2>');
 
-                // Lista de cotizaciones
-                var gvListaEl = document.getElementById('<%= gvCotizaciones.ClientID %>');
-                if (gvListaEl) {
-                    // Clonar para poder ocultar última columna (acciones)
-                    var clone = gvListaEl.cloneNode(true);
-                    var celdas = clone.querySelectorAll('tr > *:last-child');
-                    celdas.forEach(function(c){ c.style.display = 'none'; });
-                    printWindow.document.write('<h4>Lista de Cotizaciones</h4>');
-                    printWindow.document.write(clone.outerHTML);
-                }
-
-                // Detalle mensual (si está visible)
-                var pnlDetalle = document.getElementById('<%= pnlDetallesView.ClientID %>');
-                if (pnlDetalle && pnlDetalle.style.display !== 'none') {
-                    var tituloDetalle = document.getElementById('<%= lblTituloDetalles.ClientID %>');
-                    var titulo = tituloDetalle ? tituloDetalle.innerText : 'Detalles Mensuales';
-                    var gvDetalleEl = document.getElementById('<%= gvDetallesCotizacion.ClientID %>');
-                    if (gvDetalleEl) {
-                        printWindow.document.write('<h4>' + titulo + '</h4>');
-                        printWindow.document.write(gvDetalleEl.outerHTML);
-                    }
-                }
-
-                printWindow.document.write('<p style="margin-top:30px; font-size:11px; color:#888;">Generado el: ' + new Date().toLocaleString() + '</p>');
-                printWindow.document.write('</body></html>');
-                printWindow.document.close();
-                printWindow.focus();
-                setTimeout(function(){ printWindow.print(); }, 400);
-            }
-        </script>
-        
         <asp:GridView ID="gvCotizaciones" runat="server" AutoGenerateColumns="False" CssClass="table-modern" DataKeyNames="IdCotizacion" OnRowCommand="gvCotizaciones_RowCommand">
+            <SelectedRowStyle BackColor="#e9ecef" />
             <Columns>
                 <asp:BoundField DataField="NumeroCotizacion" HeaderText="Nro Cotizaci&oacute;n" />
                 <asp:BoundField DataField="NombreCotizante" HeaderText="Cotizante" />
@@ -1091,40 +1044,88 @@
                             </div>
                         </div>
 
-                        <!-- Filtros -->
-                        <div style="display:flex; align-items:center; gap:15px; flex-wrap:wrap; margin:15px; padding:15px; background:#f9f9f9; border:1px solid #eee; border-radius:6px;">
-                            <div style="display:block;">
-                                <label class="form-label">Filtrar por Cotizante:</label>
-                                <asp:DropDownList ID="ddlReporteCotizante" runat="server" CssClass="form-input" DataTextField="Nombre" DataValueField="IdCotizante" style="min-width:250px;"></asp:DropDownList>
-                            </div>
-                            <div style="display:block;">
-                                <label class="form-label">Desde:</label>
-                                <asp:TextBox ID="txtFechaDesdeAdmin" runat="server" CssClass="form-input" TextMode="Date"></asp:TextBox>
-                            </div>
-                            <div style="display:block;">
-                                <label class="form-label">Hasta:</label>
-                                <asp:TextBox ID="txtFechaHastaAdmin" runat="server" CssClass="form-input" TextMode="Date"></asp:TextBox>
-                            </div>
-                            <div style="display:block; align-self:flex-end;">
-                                <asp:Button ID="btnFiltrarReporteAdmin" runat="server" Text="Ver Reporte" CssClass="btn-primary" OnClick="btnFiltrarReporteAdmin_Click" />
-                            </div>
+
+                        <!-- Filtros de Reporte -->
+                        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:15px; padding:10px; background:#f9f9f9; border:1px solid #eee; border-radius:6px;">
+                            <label style="font-weight:bold;">Filtrar por Cotizante:</label>
+                            <asp:DropDownList ID="ddlReporteCotizante" runat="server" CssClass="form-input" DataTextField="Nombre" DataValueField="IdCotizante" style="max-width:220px;"></asp:DropDownList>
+                            <label style="font-weight:bold;">Desde:</label>
+                            <asp:TextBox ID="txtFechaDesdeAdmin" runat="server" CssClass="form-input" TextMode="Date" style="max-width:160px;"></asp:TextBox>
+                            <label style="font-weight:bold;">Hasta:</label>
+                            <asp:TextBox ID="txtFechaHastaAdmin" runat="server" CssClass="form-input" TextMode="Date" style="max-width:160px;"></asp:TextBox>
+                            <asp:Button ID="btnFiltrarReporteAdmin" runat="server" Text="Ver Reporte" CssClass="btn-primary" OnClick="btnFiltrarReporteAdmin_Click" />
                         </div>
 
-                        <asp:Label ID="lblMensajeReporteAdmin" runat="server" CssClass="error-message" style="margin-left:15px;"></asp:Label>
+                        <asp:Label ID="lblMensajeReporteAdmin" runat="server" CssClass="error-message" Visible="false"
+                            style="display:block; padding:12px 16px; border-radius:6px; font-weight:bold; margin:0 15px 10px;"></asp:Label>
 
-                        <div class="card-content" style="overflow-x:auto;">
-                            <asp:GridView ID="gvReporteAdmin" runat="server" AutoGenerateColumns="False" CssClass="table-modern" DataKeyNames="IdCotizacion">
+                        <asp:GridView ID="gvReporteAdmin" runat="server" AutoGenerateColumns="False" CssClass="table-modern" DataKeyNames="IdCotizacion" OnRowCommand="gvReporteAdmin_RowCommand">
+                            <SelectedRowStyle BackColor="#e9ecef" />
+                            <Columns>
+                                <asp:BoundField DataField="NumeroCotizacion" HeaderText="Nro. Cotizaci&oacute;n" />
+                                <asp:BoundField DataField="NombreProducto" HeaderText="Producto" />
+                                <asp:BoundField DataField="FechaCotizacion" HeaderText="Fecha" DataFormatString="{0:dd/MM/yyyy}" />
+                                <asp:BoundField DataField="Tasa" HeaderText="Tasa (%)" DataFormatString="{0:N2}%" />
+                                <asp:BoundField DataField="Inversion" HeaderText="Inversi&oacute;n" DataFormatString="{0:N2}" />
+                                <asp:BoundField DataField="InteresBruto" HeaderText="Int. Bruto" DataFormatString="{0:N2}" />
+                                <asp:BoundField DataField="Impuesto" HeaderText="Impuesto" DataFormatString="{0:N2}" />
+                                <asp:BoundField DataField="GananciaNeta" HeaderText="Ganancia Neta" DataFormatString="{0:N2}" />
+                                <asp:BoundField DataField="UsuarioCreacion" HeaderText="Creado Por" />
+                                <asp:BoundField DataField="FechaCreacion" HeaderText="Fecha Creado" DataFormatString="{0:dd/MM/yyyy}" />
+                                <asp:BoundField DataField="UsuarioModificacion" HeaderText="Modificado Por" />
+                                <asp:BoundField DataField="FechaModificacion" HeaderText="Fecha Mod." DataFormatString="{0:dd/MM/yyyy}" />
+                                <asp:TemplateField>
+                                    <ItemTemplate>
+                                        <asp:LinkButton ID="btnVerDetallesReporte" runat="server" CommandName="VerDetalles" CommandArgument='<%# Eval("IdCotizacion") %>' CssClass="btn-secondary" Text="Ver Detalle"></asp:LinkButton>
+                                    </ItemTemplate>
+                                </asp:TemplateField>
+                            </Columns>
+                        </asp:GridView>
+
+                        <!-- Panel de Detalles del Reporte -->
+                        <asp:Panel ID="pnlDetallesReporteAdmin" runat="server" Visible="false" style="margin-top:20px; border-top:2px solid #ddd; padding-top:15px;">
+                            <h4 id="lblTituloDetallesReporte" runat="server" style="color:#003366;">Detalles Mensuales</h4>
+                            <asp:HiddenField ID="hfIdCotizacionReporte" runat="server" />
+                            <br/>
+                            <asp:GridView ID="gvDetallesReporteAdmin" runat="server" AutoGenerateColumns="False" CssClass="table-modern" DataKeyNames="IdCotizacion,NumeroMes" OnRowDataBound="gvDetallesReporteAdmin_RowDataBound" OnDataBound="gvDetallesReporteAdmin_DataBound" ShowFooter="True">
                                 <Columns>
-                                    <asp:BoundField DataField="NumeroCotizacion" HeaderText="Nro. Cotizaci&oacute;n" />
-                                    <asp:BoundField DataField="NombreProducto" HeaderText="Producto" />
-                                    <asp:BoundField DataField="FechaCotizacion" HeaderText="Fecha" DataFormatString="{0:dd/MM/yyyy}" />
-                                    <asp:BoundField DataField="Tasa" HeaderText="Tasa (%)" DataFormatString="{0:N2}%" />
-                                    <asp:BoundField DataField="Inversion" HeaderText="Inversi&oacute;n" DataFormatString="{0:N2}" />
-                                    <asp:BoundField DataField="InteresBruto" HeaderText="Int. Bruto" DataFormatString="{0:N2}" />
+                                    <asp:BoundField DataField="NumeroMes" HeaderText="Mes" />
+                                    <asp:BoundField DataField="InteresBruto" HeaderText="Interes Bruto" DataFormatString="{0:N2}" />
                                     <asp:BoundField DataField="Impuesto" HeaderText="Impuesto" DataFormatString="{0:N2}" />
-                                    <asp:BoundField DataField="GananciaNeta" HeaderText="Ganancia Neta" DataFormatString="{0:N2}" />
-                                    <asp:BoundField DataField="UsuarioCreacion" HeaderText="Usuario" />
-                                    <asp:BoundField DataField="FechaCreacion" HeaderText="Fecha Reg." DataFormatString="{0:dd/MM/yyyy}" />
+                                    <asp:BoundField DataField="InteresNeto" HeaderText="Interes Neto" DataFormatString="{0:N2}" />
+                                </Columns>
+                            </asp:GridView>
+                            <div style="margin-top: 15px;">
+                                <asp:Button ID="btnCerrarDetallesReporte" runat="server" Text="Cerrar Detalles" CssClass="btn-secondary" OnClick="btnCerrarDetallesReporte_Click" />
+                            </div>
+                        </asp:Panel>
+                    </div>
+                </asp:Panel>
+
+                <!-- ================= AUDITORIA ================= -->
+                <asp:Panel ID="pnlAuditoria" runat="server" Visible="false">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Auditoria del Sistema</h3>
+                        </div>
+
+                        <asp:Label ID="lblMensajeAuditoria" runat="server" CssClass="error-message" style="display:block; margin: 10px 0; text-align: center;"></asp:Label>
+
+                        <div style="overflow-x: auto;">
+                            <asp:GridView ID="gvAuditoria"
+                                runat="server"
+                                AutoGenerateColumns="False"
+                                CssClass="table-modern">
+
+                                <Columns>
+                                    <asp:BoundField DataField="FechaHoraDeActualizacion" HeaderText="Fecha" DataFormatString="{0:dd/MM/yyyy HH:mm}" />
+                                    <asp:BoundField DataField="SeccionAfectada" HeaderText="Modulo" />
+                                    <asp:BoundField DataField="CuentaAfectada" HeaderText="Cuenta" />
+                                    <asp:BoundField DataField="AccionRealizada" HeaderText="Accion" />
+                                    <asp:BoundField DataField="DetalleDelCambio" HeaderText="Detalle" />
+                                    <asp:BoundField DataField="ActualizadoPor" HeaderText="Usuario Responsable" />
+                                    <asp:BoundField DataField="CreadoOriginalmentePor" HeaderText="Creador Original" />
+                                    <asp:BoundField DataField="FechaHoraDeCreacion" HeaderText="Fecha Creacion" DataFormatString="{0:dd/MM/yyyy HH:mm}" />
                                 </Columns>
                             </asp:GridView>
                         </div>

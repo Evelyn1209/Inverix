@@ -199,7 +199,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="DataBase\InverixDB.sql" />
+    <Content Include="DataBase\Inverix_Final_DB.sql" />
     <Content Include="Global.asax" />
     <Content Include="Images\iconlogo.png" />
     <Content Include="Images\logo.png" />
@@ -209,6 +209,7 @@
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Classes\AuditoriaClass.cs" />
     <Compile Include="Classes\Conexion.cs" />
     <Compile Include="Classes\CotizacionClass.cs" />
     <Compile Include="Classes\CotizanteClass.cs" />
@@ -222,6 +223,7 @@
     <Compile Include="Classes\TasaClass.cs" />
     <Compile Include="Classes\TipoIdentificacionClass.cs" />
     <Compile Include="Classes\UsuarioClass.cs" />
+    <Compile Include="Controllers\AuditoriaController.cs" />
     <Compile Include="Controllers\CotizacionController.cs" />
     <Compile Include="Controllers\CotizanteController.cs" />
     <Compile Include="Controllers\MonedaController.cs" />

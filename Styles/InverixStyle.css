@@ -465,6 +465,12 @@ select,
     font-weight: bold;
 }
 
+/* ======================== CARD CONTENT ======================== */
+.card-content {
+    width: 100%;
+    box-sizing: border-box;
+}
+
 /* ======================== DIVISOR ======================== */
 .divider {
     border: none;

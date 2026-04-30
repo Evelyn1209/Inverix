@@ -1,21 +1,15 @@
 /*============================================================
-  INVERIX - Script Completo de Base de Datos
-  Versión limpia para instalar en una nueva base de datos
-  Orden: DB → Tablas → Índices → Funciones → Vistas → SPs → Datos
+  INVERIX - SCRIPT CONSOLIDADO Y LIMPIO (SIN ALTERS)
+  Versión Final: Incluye Auditoría y todas las correcciones
 ============================================================*/
 
-
-/*========================================
-  1. CREAR BASE DE DATOS
-========================================*/
-CREATE DATABASE InverixDB
+CREATE DATABASE SistemInverixDB
 GO
-USE InverixDB
+USE SistemInverixDB
 GO
 
 /*========================================
-  2. TABLAS
-  (En orden de dependencia)
+  1. TABLAS BASE
 ========================================*/
 
 -- Roles
@@ -138,7 +132,7 @@ CREATE TABLE Tasas (
 )
 GO
 
--- Cotizantes
+-- Cotizantes (INTEGRADO CON id_usuario DESDE EL INICIO)
 CREATE TABLE Cotizantes (
     id_cotizante           INT IDENTITY(1,1) PRIMARY KEY,
     id_tipo_identificacion INT          NOT NULL,
@@ -153,7 +147,9 @@ CREATE TABLE Cotizantes (
     fecha_creacion         DATETIME     NOT NULL DEFAULT GETDATE(),
     usuario_modificacion   VARCHAR(50)  NULL,
     fecha_modificacion     DATETIME     NULL,
+    id_usuario             INT          NULL, -- Columna integrada
     FOREIGN KEY (id_tipo_identificacion) REFERENCES Tipo_Identificacion(id_tipo_identificacion),
+    FOREIGN KEY (id_usuario) REFERENCES Usuarios(id_usuario),
     CONSTRAINT UQ_Cotizante_Identificacion UNIQUE (identificacion)
 )
 GO
@@ -210,7 +206,7 @@ CREATE TABLE Detalle_Cotizacion (
 GO
 
 /*========================================
-  3. ÍNDICES
+  2. ÍNDICES
 ========================================*/
 CREATE INDEX IX_UsuariosRoles_Usuario      ON Usuarios_Roles(id_usuario)
 CREATE INDEX IX_UsuariosRoles_Rol          ON Usuarios_Roles(id_role)
@@ -224,7 +220,7 @@ CREATE INDEX IX_DetalleCotizacion_Cotizacion ON Detalle_Cotizacion(id_cotizacion
 GO
 
 /*========================================
-  4. FUNCIONES
+  3. FUNCIONES
 ========================================*/
 
 -- Calcula el interés bruto mensual: (monto * tasa / 100) / 360 * 30
@@ -246,13 +242,14 @@ END
 GO
 
 /*========================================
-  5. VISTAS
+  4. VISTAS
 ========================================*/
 
--- Vista historial completo de cotizaciones
+-- Vista historial completo de cotizaciones (CON id_cotizante)
 CREATE VIEW vw_HistorialCotizaciones AS
 SELECT
     c.id_cotizacion,
+    c.id_cotizante,
     c.numero_cotizacion,
     c.fechaCotizacion,
     u.usuario,
@@ -274,7 +271,7 @@ INNER JOIN Plazos     pl ON c.id_plazo     = pl.id_plazo
 INNER JOIN Cotizantes co ON c.id_cotizante = co.id_cotizante
 GO
 
--- Vista de tasas con info de producto y plazo (la que usa el C#)
+-- Vista de tasas con info de producto, plazo y moneda
 CREATE VIEW vw_TasasProductos AS
 SELECT
     t.id_tasa,
@@ -284,6 +281,7 @@ SELECT
     pl.dias,
     t.porcentaje,
     t.estado,
+    m.nombre AS nombre_moneda,
     t.usuario_creacion,
     t.fecha_creacion,
     t.usuario_modificacion,
@@ -291,6 +289,7 @@ SELECT
 FROM Tasas t
 INNER JOIN Productos p  ON t.id_producto = p.id_producto
 INNER JOIN Plazos    pl ON t.id_plazo    = pl.id_plazo
+INNER JOIN Monedas   m  ON p.id_moneda    = m.id_moneda
 GO
 
 -- Vista cotizaciones por usuario
@@ -310,7 +309,7 @@ INNER JOIN Plazos    pl ON c.id_plazo    = pl.id_plazo
 GO
 
 /*========================================
-  6. STORED PROCEDURES
+  5. STORED PROCEDURES
 ========================================*/
 
 -- ---- USUARIOS ----
@@ -325,10 +324,31 @@ AS BEGIN
 END
 GO
 
-CREATE PROCEDURE sp_ActualizarUsuario @id_usuario INT, @usuario VARCHAR(50), @usuario_modificacion VARCHAR(50)
+-- Actualizar Usuario (Versión Final con Clave Nueva y HEX)
+CREATE PROCEDURE sp_ActualizarUsuario 
+    @id_usuario INT, 
+    @usuario VARCHAR(50), 
+    @clave_nueva VARCHAR(255) = NULL, 
+    @usuario_modificacion VARCHAR(50)
 AS BEGIN
     SET NOCOUNT ON
-    UPDATE Usuarios SET usuario = @usuario, usuario_modificacion = @usuario_modificacion, fecha_modificacion = GETDATE() WHERE id_usuario = @id_usuario
+    IF (@clave_nueva IS NOT NULL AND RTRIM(LTRIM(@clave_nueva)) != '')
+    BEGIN
+        UPDATE Usuarios 
+        SET usuario = @usuario, 
+            clave = CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', @clave_nueva), 2), 
+            usuario_modificacion = @usuario_modificacion, 
+            fecha_modificacion = GETDATE() 
+        WHERE id_usuario = @id_usuario
+    END
+    ELSE
+    BEGIN
+        UPDATE Usuarios 
+        SET usuario = @usuario, 
+            usuario_modificacion = @usuario_modificacion, 
+            fecha_modificacion = GETDATE() 
+        WHERE id_usuario = @id_usuario
+    END
 END
 GO
 
@@ -342,21 +362,57 @@ GO
 CREATE PROCEDURE sp_ListarUsuarios
 AS BEGIN
     SET NOCOUNT ON
-    SELECT u.id_usuario, u.usuario, r.nombre AS rol, u.estado
+    SELECT u.id_usuario, u.usuario, u.estado, r.nombre AS rol, ur.id_role
     FROM Usuarios u
     LEFT JOIN Usuarios_Roles ur ON u.id_usuario = ur.id_usuario
     LEFT JOIN Roles r ON ur.id_role = r.id_role
 END
 GO
 
-CREATE PROCEDURE sp_LoginUsuario @usuario VARCHAR(50), @clave VARCHAR(100)
+-- Login (Versión Final con id_cotizante y rolCodigo)
+CREATE PROCEDURE sp_LoginUsuario 
+    @usuario VARCHAR(50), 
+    @clave VARCHAR(100)
 AS BEGIN
     SET NOCOUNT ON
-    SELECT u.id_usuario, u.usuario, r.nombre AS rol
+    SELECT 
+        u.id_usuario, 
+        u.usuario, 
+        r.nombre AS rol,
+        r.codigo  AS rolCodigo,
+        co.id_cotizante
     FROM Usuarios u
     LEFT JOIN Usuarios_Roles ur ON u.id_usuario = ur.id_usuario
-    LEFT JOIN Roles r ON ur.id_role = r.id_role
-    WHERE u.usuario = @usuario AND u.clave = CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', @clave), 2) AND u.estado = 1
+    LEFT JOIN Roles r           ON ur.id_role   = r.id_role
+    LEFT JOIN Cotizantes co     ON co.id_usuario = u.id_usuario
+    WHERE u.usuario = @usuario 
+      AND u.clave = CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', @clave), 2) 
+      AND u.estado = 1
+END
+GO
+
+CREATE PROCEDURE sp_ActualizarClave
+    @id_usuario INT,
+    @clave_actual NVARCHAR(255),
+    @clave_nueva NVARCHAR(255)
+AS BEGIN
+    SET NOCOUNT ON
+    IF EXISTS (
+        SELECT 1 FROM Usuarios
+        WHERE id_usuario = @id_usuario
+          AND clave = CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', @clave_actual), 2)
+    )
+    BEGIN
+        UPDATE Usuarios
+        SET clave = CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', @clave_nueva), 2),
+            fecha_modificacion = GETDATE()
+        WHERE id_usuario = @id_usuario
+        SELECT 1 AS resultado, 'Contraseña actualizada correctamente.' AS mensaje
+    END
+    ELSE
+    BEGIN
+        SELECT 0 AS resultado, 'La contraseña actual es incorrecta.' AS mensaje
+    END
 END
 GO
 
@@ -396,8 +452,24 @@ AS BEGIN
 END
 GO
 
--- ---- MONEDAS ----
+CREATE PROCEDURE sp_ActualizarRolUsuario 
+    @id_usuario INT, 
+    @id_role INT, 
+    @usuario_modificacion VARCHAR(50)
+AS BEGIN
+    SET NOCOUNT ON
+    IF EXISTS (SELECT 1 FROM Usuarios_Roles WHERE id_usuario = @id_usuario)
+    BEGIN
+        UPDATE Usuarios_Roles SET id_role = @id_role, usuario_modificacion = @usuario_modificacion, fecha_modificacion = GETDATE() WHERE id_usuario = @id_usuario
+    END
+    ELSE
+    BEGIN
+        INSERT INTO Usuarios_Roles (id_usuario, id_role, usuario_creacion) VALUES (@id_usuario, @id_role, @usuario_modificacion)
+    END
+END
+GO
 
+-- ---- MONEDAS ----
 
 CREATE PROCEDURE sp_CrearMoneda @codigo VARCHAR(10), @nombre VARCHAR(50), @simbolo VARCHAR(5), @usuario_creacion VARCHAR(50)
 AS
@@ -593,20 +665,117 @@ AS BEGIN
 END
 GO
 
+-- Listar Cotizantes (Versión Final: Incluye IdUsuario y Filtra Administradores)
 CREATE PROCEDURE sp_ListarCotizantes
 AS BEGIN
-    SET NOCOUNT ON
-    SELECT c.id_cotizante AS IdCotizante, ti.nombre AS TipoIdentificacionNombre,
-        c.identificacion AS Identificacion, c.nombre AS Nombre,
-        c.primer_apellido AS PrimerApellido, c.segundo_apellido AS SegundoApellido,
-        (c.nombre + ' ' + c.primer_apellido + ' ' + c.segundo_apellido) AS NombreCompleto,
-        c.correo AS Correo, c.telefono AS Telefono, c.estado AS Estado,
-        c.usuario_creacion AS UsuarioCreacion, c.fecha_creacion AS FechaCreacion,
-        c.usuario_modificacion AS UsuarioModificacion, c.fecha_modificacion AS FechaModificacion,
-        c.id_tipo_identificacion AS IdTipoIdentificacion
+    SET NOCOUNT ON;
+    SELECT c.id_cotizante AS IdCotizante, 
+           c.id_tipo_identificacion AS IdTipoIdentificacion, 
+           ti.nombre AS TipoIdentificacionNombre,
+           c.identificacion AS Identificacion, 
+           c.nombre AS Nombre, 
+           c.primer_apellido AS PrimerApellido, 
+           c.segundo_apellido AS SegundoApellido, 
+           c.correo AS Correo, 
+           c.telefono AS Telefono, 
+           c.estado AS Estado,
+           c.usuario_creacion AS UsuarioCreacion, 
+           c.fecha_creacion AS FechaCreacion, 
+           c.usuario_modificacion AS UsuarioModificacion, 
+           c.fecha_modificacion AS FechaModificacion,
+           c.id_usuario AS IdUsuario
     FROM Cotizantes c
     INNER JOIN Tipo_Identificacion ti ON c.id_tipo_identificacion = ti.id_tipo_identificacion
-    WHERE c.estado = 1 ORDER BY c.primer_apellido, c.nombre
+    LEFT JOIN Usuarios_Roles ur ON c.id_usuario = ur.id_usuario
+    LEFT JOIN Roles r ON ur.id_role = r.id_role
+    WHERE c.estado = 1 
+      AND (c.id_usuario IS NULL OR r.codigo = 'COT')
+    ORDER BY c.primer_apellido, c.nombre
+END
+GO
+
+-- Procedimientos Especiales de Cotizantes Web y Accesos
+CREATE PROCEDURE sp_RegistrarCotizanteWeb
+    @usuario VARCHAR(50),
+    @clave VARCHAR(100),
+    @id_tipo_identificacion INT,
+    @identificacion VARCHAR(50),
+    @nombre VARCHAR(100),
+    @primer_apellido VARCHAR(100),
+    @segundo_apellido VARCHAR(100),
+    @correo VARCHAR(100),
+    @telefono VARCHAR(20)
+AS BEGIN
+    SET NOCOUNT ON;
+    DECLARE @idUsuario INT;
+    DECLARE @idRole INT = (SELECT id_role FROM Roles WHERE codigo = 'COT');
+    BEGIN TRY
+        BEGIN TRANSACTION
+        IF EXISTS (SELECT 1 FROM Usuarios WHERE usuario = @usuario) BEGIN RAISERROR('El nombre de usuario ya está registrado.', 16, 1); RETURN; END
+        IF EXISTS (SELECT 1 FROM Cotizantes WHERE identificacion = @identificacion) BEGIN RAISERROR('La identificación ya está registrada.', 16, 1); RETURN; END
+        INSERT INTO Usuarios (usuario, clave, estado, usuario_creacion, fecha_creacion)
+        VALUES (@usuario, CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', @clave), 2), 1, @usuario, GETDATE());
+        SET @idUsuario = SCOPE_IDENTITY();
+        INSERT INTO Usuarios_Roles (id_usuario, id_role, usuario_creacion, fecha_creacion) VALUES (@idUsuario, @idRole, @usuario, GETDATE());
+        INSERT INTO Cotizantes (id_tipo_identificacion, identificacion, nombre, primer_apellido, segundo_apellido, correo, telefono, estado, usuario_creacion, fecha_creacion, id_usuario)
+        VALUES (@id_tipo_identificacion, @identificacion, @nombre, @primer_apellido, @segundo_apellido, @correo, @telefono, 1, @usuario, GETDATE(), @idUsuario);
+        COMMIT TRANSACTION
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION
+        DECLARE @ErrMsg NVARCHAR(4000) = ERROR_MESSAGE(); RAISERROR(@ErrMsg, 16, 1);
+    END CATCH
+END
+GO
+
+CREATE PROCEDURE sp_GenerarAccesoCotizante
+    @id_cotizante INT,
+    @usuario VARCHAR(50),
+    @clave VARCHAR(100),
+    @usuario_creador VARCHAR(50)
+AS BEGIN
+    SET NOCOUNT ON;
+    DECLARE @idUsuario INT;
+    DECLARE @idRole INT = (SELECT id_role FROM Roles WHERE codigo = 'COT');
+    BEGIN TRY
+        BEGIN TRANSACTION
+        IF EXISTS (SELECT 1 FROM Usuarios WHERE usuario = @usuario) BEGIN RAISERROR('El nombre de usuario ya está registrado.', 16, 1); RETURN; END
+        INSERT INTO Usuarios (usuario, clave, estado, usuario_creacion, fecha_creacion)
+        VALUES (@usuario, CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', @clave), 2), 1, @usuario_creador, GETDATE());
+        SET @idUsuario = SCOPE_IDENTITY();
+        INSERT INTO Usuarios_Roles (id_usuario, id_role, usuario_creacion, fecha_creacion) VALUES (@idUsuario, @idRole, @usuario_creador, GETDATE());
+        UPDATE Cotizantes SET id_usuario = @idUsuario, usuario_modificacion = @usuario_creador, fecha_modificacion = GETDATE() WHERE id_cotizante = @id_cotizante;
+        COMMIT TRANSACTION
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION
+        DECLARE @ErrMsg NVARCHAR(4000) = ERROR_MESSAGE(); RAISERROR(@ErrMsg, 16, 1);
+    END CATCH
+END
+GO
+
+CREATE PROCEDURE sp_VincularUsuarioCotizante
+    @id_cotizante INT,
+    @usuario VARCHAR(50),
+    @usuario_creador VARCHAR(50)
+AS BEGIN
+    SET NOCOUNT ON;
+    DECLARE @idUsuario INT;
+    DECLARE @idRole INT = (SELECT id_role FROM Roles WHERE codigo = 'COT');
+    BEGIN TRY
+        BEGIN TRANSACTION
+        SELECT @idUsuario = id_usuario FROM Usuarios WHERE usuario = @usuario AND estado = 1;
+        IF @idUsuario IS NULL BEGIN RAISERROR('El usuario no existe o esta inactivo.', 16, 1); RETURN; END
+        IF EXISTS (SELECT 1 FROM Cotizantes WHERE id_usuario = @idUsuario AND id_cotizante != @id_cotizante) BEGIN RAISERROR('Este usuario ya esta asignado a otro cotizante.', 16, 1); RETURN; END
+        UPDATE Cotizantes SET id_usuario = @idUsuario, usuario_modificacion = @usuario_creador, fecha_modificacion = GETDATE() WHERE id_cotizante = @id_cotizante;
+        IF NOT EXISTS (SELECT 1 FROM Usuarios_Roles WHERE id_usuario = @idUsuario AND id_role = @idRole)
+        BEGIN INSERT INTO Usuarios_Roles (id_usuario, id_role, usuario_creacion, fecha_creacion) VALUES (@idUsuario, @idRole, @usuario_creador, GETDATE()); END
+        COMMIT TRANSACTION
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION
+        DECLARE @ErrMsg NVARCHAR(4000) = ERROR_MESSAGE(); RAISERROR(@ErrMsg, 16, 1);
+    END CATCH
 END
 GO
 
@@ -700,7 +869,7 @@ GO
 CREATE PROCEDURE sp_ObtenerCotizacion @id_cotizacion INT
 AS BEGIN
     SET NOCOUNT ON
-    SELECT c.id_cotizacion, c.numero_cotizacion, u.usuario, p.nombre AS producto, pl.dias AS plazo_dias,
+    SELECT c.id_cotizacion, c.id_cotizante, c.numero_cotizacion, u.usuario, p.nombre AS producto, pl.dias AS plazo_dias,
         c.fechaCotizacion, c.fechaInicio, c.fechaFinal, c.monto, c.tasaAplicada, c.porcentajeImpuesto,
         c.montoTotalInteresBruto, c.montoTotalImpuesto, c.montoTotalNeto
     FROM Cotizaciones c
@@ -745,7 +914,7 @@ END
 GO
 
 /*========================================
-  7. DATOS INICIALES
+  6. DATOS INICIALES
 ========================================*/
 
 -- Tipos de identificación
@@ -771,7 +940,7 @@ INSERT INTO Productos (codigo, nombre, id_moneda, usuario_creacion) VALUES
 ('DV', 'Dólar Visión',      2, 'admin')
 GO
 
--- Plazos (15 días a 24 meses)
+-- Plazos
 INSERT INTO Plazos (dias, descripcion, usuario_creacion) VALUES
 ( 15, '15 días',   'admin'), ( 30, '1 mes',    'admin'), ( 60, '2 meses',  'admin'),
 ( 90, '3 meses',   'admin'), (120, '4 meses',  'admin'), (150, '5 meses',  'admin'),
@@ -784,35 +953,30 @@ INSERT INTO Plazos (dias, descripcion, usuario_creacion) VALUES
 (720, '24 meses',  'admin')
 GO
 
--- Tasas: Colón Crece (id_producto=1, plazos 1-25)
+-- Tasas Completas según tabla oficial
 INSERT INTO Tasas (id_producto, id_plazo, porcentaje, usuario_creacion) VALUES
+-- Colón Crece (CC) - ID 1
 (1,1,3.1500,'admin'),(1,2,3.2500,'admin'),(1,3,3.4000,'admin'),(1,4,3.6000,'admin'),(1,5,3.7500,'admin'),
 (1,6,3.9000,'admin'),(1,7,4.1000,'admin'),(1,8,4.2500,'admin'),(1,9,4.4000,'admin'),(1,10,4.5500,'admin'),
 (1,11,4.7000,'admin'),(1,12,4.8500,'admin'),(1,13,5.0000,'admin'),(1,14,5.1000,'admin'),(1,15,5.2000,'admin'),
 (1,16,5.3000,'admin'),(1,17,5.4000,'admin'),(1,18,5.5000,'admin'),(1,19,5.6500,'admin'),(1,20,5.8000,'admin'),
-(1,21,5.9500,'admin'),(1,22,6.1000,'admin'),(1,23,6.2500,'admin'),(1,24,6.4000,'admin'),(1,25,6.5500,'admin')
-GO
+(1,21,5.9500,'admin'),(1,22,6.1000,'admin'),(1,23,6.2500,'admin'),(1,24,6.4000,'admin'),(1,25,6.5500,'admin'),
 
--- Tasas: Colón Futuro Plus (id_producto=2, desde plazo 4)
-INSERT INTO Tasas (id_producto, id_plazo, porcentaje, usuario_creacion) VALUES
+-- Colón Futuro Plus (CF) - ID 2
 (2,4,3.8500,'admin'),(2,5,4.0000,'admin'),(2,6,4.1500,'admin'),(2,7,4.3500,'admin'),(2,8,4.5000,'admin'),
 (2,9,4.6500,'admin'),(2,10,4.8000,'admin'),(2,11,4.9500,'admin'),(2,12,5.1000,'admin'),(2,13,5.3000,'admin'),
 (2,14,5.4000,'admin'),(2,15,5.5000,'admin'),(2,16,5.6000,'admin'),(2,17,5.7000,'admin'),(2,18,5.8000,'admin'),
 (2,19,5.9500,'admin'),(2,20,6.1000,'admin'),(2,21,6.2500,'admin'),(2,22,6.4000,'admin'),(2,23,6.5500,'admin'),
-(2,24,6.7000,'admin'),(2,25,6.9000,'admin')
-GO
+(2,24,6.7000,'admin'),(2,25,6.9000,'admin'),
 
--- Tasas: Dólar Seguro (id_producto=3, desde plazo 2)
-INSERT INTO Tasas (id_producto, id_plazo, porcentaje, usuario_creacion) VALUES
+-- Dólar Seguro (DS) - ID 3
 (3,2,1.0000,'admin'),(3,3,1.2500,'admin'),(3,4,1.5000,'admin'),(3,5,1.6500,'admin'),(3,6,1.8000,'admin'),
 (3,7,2.0000,'admin'),(3,8,2.1500,'admin'),(3,9,2.3000,'admin'),(3,10,2.4500,'admin'),(3,11,2.6000,'admin'),
 (3,12,2.7500,'admin'),(3,13,2.9000,'admin'),(3,14,3.0000,'admin'),(3,15,3.1000,'admin'),(3,16,3.2000,'admin'),
 (3,17,3.3000,'admin'),(3,18,3.4000,'admin'),(3,19,3.5500,'admin'),(3,20,3.7000,'admin'),(3,21,3.8500,'admin'),
-(3,22,4.0000,'admin'),(3,23,4.1500,'admin'),(3,24,4.3000,'admin'),(3,25,4.4500,'admin')
-GO
+(3,22,4.0000,'admin'),(3,23,4.1500,'admin'),(3,24,4.3000,'admin'),(3,25,4.4500,'admin'),
 
--- Tasas: Dólar Visión (id_producto=4, desde plazo 4)
-INSERT INTO Tasas (id_producto, id_plazo, porcentaje, usuario_creacion) VALUES
+-- Dólar Visión (DV) - ID 4
 (4,4,2.7500,'admin'),(4,5,2.9000,'admin'),(4,6,3.0500,'admin'),(4,7,3.2500,'admin'),(4,8,3.4000,'admin'),
 (4,9,3.5500,'admin'),(4,10,3.7000,'admin'),(4,11,3.8500,'admin'),(4,12,4.0000,'admin'),(4,13,4.2000,'admin'),
 (4,14,4.3000,'admin'),(4,15,4.4000,'admin'),(4,16,4.5000,'admin'),(4,17,4.6000,'admin'),(4,18,4.7000,'admin'),
@@ -820,508 +984,71 @@ INSERT INTO Tasas (id_producto, id_plazo, porcentaje, usuario_creacion) VALUES
 (4,24,5.6000,'admin'),(4,25,6.8500,'admin')
 GO
 
--- Rol administrador
-IF NOT EXISTS (SELECT 1 FROM Roles WHERE codigo = 'ADM')
-    INSERT INTO Roles (codigo, nombre, estado, usuario_creacion, fecha_creacion)
-    VALUES ('ADM', 'Administrador del Sistema', 1, 'admin', GETDATE())
+
+-- Roles Iniciales
+INSERT INTO Roles (codigo, nombre, estado, usuario_creacion, fecha_creacion) VALUES 
+('ADM', 'Administrador del Sistema', 1, 'admin', GETDATE()),
+('COT', 'Cotizante', 1, 'admin', GETDATE())
 GO
 
--- Usuario administrador (contraseña: admin123)
-IF NOT EXISTS (SELECT 1 FROM Usuarios WHERE usuario = 'admin')
-    INSERT INTO Usuarios (usuario, clave, estado, usuario_creacion, fecha_creacion)
-    VALUES ('admin', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', 'admin123'), 2), 1, 'admin', GETDATE())
+-- Usuario admin
+INSERT INTO Usuarios (usuario, clave, estado, usuario_creacion, fecha_creacion)
+VALUES ('admin', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', 'Admin123'), 2), 1, 'admin', GETDATE())
 GO
 
--- Asignar rol al usuario admin
-DECLARE @idUser INT = (SELECT id_usuario FROM Usuarios WHERE usuario = 'admin')
-DECLARE @idRole INT = (SELECT id_role    FROM Roles    WHERE codigo   = 'ADM')
-IF NOT EXISTS (SELECT 1 FROM Usuarios_Roles WHERE id_usuario = @idUser AND id_role = @idRole)
-    INSERT INTO Usuarios_Roles (id_usuario, id_role, usuario_creacion, fecha_creacion)
-    VALUES (@idUser, @idRole, 'admin', GETDATE())
+INSERT INTO Usuarios_Roles (id_usuario, id_role, usuario_creacion, fecha_creacion)
+VALUES ((SELECT id_usuario FROM Usuarios WHERE usuario = 'admin'), (SELECT id_role FROM Roles WHERE codigo = 'ADM'), 'admin', GETDATE())
 GO
 
 /*============================================================
-  FIN DEL SCRIPT - INVERIX
+  7. AUDITORIA DEL SISTEMA
 ============================================================*/
 
-
-
-
-
-
-
--- NUEVOS CAMBIOS
-
-ALTER TABLE Cotizantes
-ADD id_usuario INT NULL;
+CREATE TABLE Auditoria_Completa (
+    IdAuditoria INT IDENTITY(1,1) PRIMARY KEY,
+    SeccionAfectada VARCHAR(50) NOT NULL,      
+    CuentaAfectada VARCHAR(100) NOT NULL,      
+    AccionRealizada VARCHAR(100) NOT NULL,     
+    DetalleDelCambio VARCHAR(255) NULL,        
+    CreadoOriginalmentePor VARCHAR(100) NOT NULL,
+    FechaHoraDeCreacion DATETIME NOT NULL,
+    ActualizadoPor VARCHAR(100) NOT NULL,
+    FechaHoraDeActualizacion DATETIME DEFAULT GETDATE()
+);
 GO
 
-ALTER TABLE Cotizantes
-ADD CONSTRAINT FK_Cotizantes_Usuario
-FOREIGN KEY (id_usuario) REFERENCES Usuarios(id_usuario);
-GO
-
-ALTER PROCEDURE sp_LoginUsuario @usuario VARCHAR(50), @clave VARCHAR(100)
-AS BEGIN
-    SET NOCOUNT ON
-    SELECT u.id_usuario, u.usuario, r.nombre AS rol, r.codigo AS rolCodigo, c.id_cotizante
-    FROM Usuarios u
-    LEFT JOIN Usuarios_Roles ur ON u.id_usuario = ur.id_usuario
-    LEFT JOIN Roles r ON ur.id_role = r.id_role
-    LEFT JOIN Cotizantes c ON u.id_usuario = c.id_usuario
-    WHERE u.usuario = @usuario 
-      AND u.clave = CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', @clave), 2) 
-      AND u.estado = 1
-END
-GO
-
-
-
--- Verificar si existe el rol COT, si no, crearlo
-IF NOT EXISTS (SELECT 1 FROM Roles WHERE codigo = 'COT')
-BEGIN
-    INSERT INTO Roles (codigo, nombre, estado, usuario_creacion, fecha_creacion)
-    VALUES ('COT', 'Cotizante', 1, 'Sistema', GETDATE())
-END
-GO
-
-
-
-CREATE PROCEDURE sp_RegistrarCotizanteWeb
-    @usuario VARCHAR(50),
-    @clave VARCHAR(100),
-    @id_tipo_identificacion INT,
-    @identificacion VARCHAR(50),
-    @nombre VARCHAR(100),
-    @primer_apellido VARCHAR(100),
-    @segundo_apellido VARCHAR(100),
-    @correo VARCHAR(100),
-    @telefono VARCHAR(20)
-AS BEGIN
-    SET NOCOUNT ON;
-    DECLARE @idUsuario INT;
-    DECLARE @idRole INT = (SELECT id_role FROM Roles WHERE codigo = 'COT');
-    
-    BEGIN TRY
-        BEGIN TRANSACTION
-        
-        -- 1. Validar que no exista el usuario
-        IF EXISTS (SELECT 1 FROM Usuarios WHERE usuario = @usuario)
-            BEGIN RAISERROR('El nombre de usuario ya está registrado.', 16, 1); RETURN; END
-            
-        -- 2. Validar que no exista la identificación
-        IF EXISTS (SELECT 1 FROM Cotizantes WHERE identificacion = @identificacion)
-            BEGIN RAISERROR('La identificación ya está registrada.', 16, 1); RETURN; END
-        -- 3. Insertar Usuario
-        INSERT INTO Usuarios (usuario, clave, estado, usuario_creacion, fecha_creacion)
-        VALUES (@usuario, CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', @clave), 2), 1, @usuario, GETDATE());
-        
-        SET @idUsuario = SCOPE_IDENTITY();
-        -- 4. Asignar Rol COT
-        INSERT INTO Usuarios_Roles (id_usuario, id_role, usuario_creacion, fecha_creacion)
-        VALUES (@idUsuario, @idRole, @usuario, GETDATE());
-        -- 5. Insertar Cotizante con el FK
-        INSERT INTO Cotizantes (id_tipo_identificacion, identificacion, nombre, primer_apellido, segundo_apellido, correo, telefono, estado, usuario_creacion, fecha_creacion, id_usuario)
-        VALUES (@id_tipo_identificacion, @identificacion, @nombre, @primer_apellido, @segundo_apellido, @correo, @telefono, 1, @usuario, GETDATE(), @idUsuario);
-        COMMIT TRANSACTION
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION
-        DECLARE @ErrMsg NVARCHAR(4000) = ERROR_MESSAGE();
-        RAISERROR(@ErrMsg, 16, 1);
-    END CATCH
-END
-GO
-
-
-
--- 1. Actualizar el SP de Listar Cotizantes para enviar el IdUsuario y saber quién tiene cuenta
-ALTER PROCEDURE sp_ListarCotizantes
-AS BEGIN
-    SET NOCOUNT ON;
-    SELECT c.id_cotizante AS IdCotizante, 
-           c.id_tipo_identificacion AS IdTipoIdentificacion, 
-           ti.nombre AS TipoIdentificacionNombre,
-           c.identificacion AS Identificacion, 
-           c.nombre AS Nombre, 
-           c.primer_apellido AS PrimerApellido, 
-           c.segundo_apellido AS SegundoApellido, 
-           c.correo AS Correo, 
-           c.telefono AS Telefono, 
-           c.estado AS Estado,
-           c.usuario_creacion AS UsuarioCreacion, 
-           c.fecha_creacion AS FechaCreacion, 
-           c.usuario_modificacion AS UsuarioModificacion, 
-           c.fecha_modificacion AS FechaModificacion,
-           c.id_usuario AS IdUsuario
-    FROM Cotizantes c
-    INNER JOIN Tipo_Identificacion ti ON c.id_tipo_identificacion = ti.id_tipo_identificacion
-END
-GO
--- 2. Crear SP para Generar Acceso a Cotizantes Existentes
-CREATE PROCEDURE sp_GenerarAccesoCotizante
-    @id_cotizante INT,
-    @usuario VARCHAR(50),
-    @clave VARCHAR(100),
-    @usuario_creador VARCHAR(50)
-AS BEGIN
-    SET NOCOUNT ON;
-    DECLARE @idUsuario INT;
-    DECLARE @idRole INT = (SELECT id_role FROM Roles WHERE codigo = 'COT');
-    
-    BEGIN TRY
-        BEGIN TRANSACTION
-        
-        -- Validar que el usuario no exista
-        IF EXISTS (SELECT 1 FROM Usuarios WHERE usuario = @usuario)
-            BEGIN RAISERROR('El nombre de usuario ya está registrado.', 16, 1); RETURN; END
-        -- Insertar Nuevo Usuario
-        INSERT INTO Usuarios (usuario, clave, estado, usuario_creacion, fecha_creacion)
-        VALUES (@usuario, CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', @clave), 2), 1, @usuario_creador, GETDATE());
-        
-        SET @idUsuario = SCOPE_IDENTITY();
-        
-        -- Asignar Rol COT
-        INSERT INTO Usuarios_Roles (id_usuario, id_role, usuario_creacion, fecha_creacion)
-        VALUES (@idUsuario, @idRole, @usuario_creador, GETDATE());
-        
-        -- Actualizar el Cotizante con su nuevo Usuario
-        UPDATE Cotizantes 
-        SET id_usuario = @idUsuario, 
-            usuario_modificacion = @usuario_creador, 
-            fecha_modificacion = GETDATE()
-        WHERE id_cotizante = @id_cotizante;
-        COMMIT TRANSACTION
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION
-        DECLARE @ErrMsg NVARCHAR(4000) = ERROR_MESSAGE();
-        RAISERROR(@ErrMsg, 16, 1);
-    END CATCH
-END
-GO
-
-
--- 1. Modificar sp_ListarUsuarios para que traiga el id_role y permitir edición
-ALTER PROCEDURE sp_ListarUsuarios
-AS BEGIN
-    SET NOCOUNT ON
-    SELECT u.id_usuario, u.usuario, u.estado, r.nombre AS rol, ur.id_role
-    FROM Usuarios u
-    LEFT JOIN Usuarios_Roles ur ON u.id_usuario = ur.id_usuario
-    LEFT JOIN Roles r ON ur.id_role = r.id_role
-END
-GO
-
-
---2. Crear procedimiento para actualizar rol de forma dinámica en vista Edición
-CREATE PROCEDURE sp_ActualizarRolUsuario 
-    @id_usuario INT, 
-    @id_role INT, 
-    @usuario_modificacion VARCHAR(50)
-AS BEGIN
-    SET NOCOUNT ON
-    
-    IF EXISTS (SELECT 1 FROM Usuarios_Roles WHERE id_usuario = @id_usuario)
+CREATE TRIGGER trg_Auditoria_Usuarios ON Usuarios AFTER INSERT, UPDATE AS BEGIN
+    IF EXISTS (SELECT * FROM inserted) AND NOT EXISTS (SELECT * FROM deleted)
     BEGIN
-        UPDATE Usuarios_Roles 
-        SET id_role = @id_role, 
-            usuario_modificacion = @usuario_modificacion, 
-            fecha_modificacion = GETDATE() 
-        WHERE id_usuario = @id_usuario
+        INSERT INTO Auditoria_Completa (SeccionAfectada, CuentaAfectada, AccionRealizada, CreadoOriginalmentePor, FechaHoraDeCreacion, ActualizadoPor, DetalleDelCambio)
+        SELECT CASE WHEN EXISTS(SELECT 1 FROM Usuarios_Roles ur WHERE ur.id_usuario = i.id_usuario AND ur.id_role = (SELECT id_role FROM Roles WHERE codigo='COT')) THEN 'Acceso de Cotizante' ELSE 'Acceso de Administrador' END,
+               i.usuario, 'Creación Original de Acceso', i.usuario_creacion, i.fecha_creacion, i.usuario_creacion, 'Se registró este acceso por primera vez.'
+        FROM inserted i;
     END
-    ELSE
+    IF EXISTS (SELECT * FROM inserted) AND EXISTS (SELECT * FROM deleted)
     BEGIN
-        -- Por si el usuario por error se guardó sin rol
-        INSERT INTO Usuarios_Roles (id_usuario, id_role, usuario_creacion) 
-        VALUES (@id_usuario, @id_role, @usuario_modificacion)
-    END
-END
-GO
-
-
-
-CREATE PROCEDURE sp_ActualizarClave
-    @id_usuario INT,
-    @clave_actual NVARCHAR(255),
-    @clave_nueva NVARCHAR(255)
-AS BEGIN
-    SET NOCOUNT ON
-    -- Verificar que la clave actual sea correcta
-    IF EXISTS (
-        SELECT 1 FROM Usuarios
-        WHERE id_usuario = @id_usuario
-          AND clave = HASHBYTES('SHA2_256', @clave_actual)
-    )
-    BEGIN
-        UPDATE Usuarios
-        SET clave = HASHBYTES('SHA2_256', @clave_nueva),
-            fecha_modificacion = GETDATE()
-        WHERE id_usuario = @id_usuario
-        SELECT 1 AS resultado, 'Contraseña actualizada correctamente.' AS mensaje
-    END
-    ELSE
-    BEGIN
-        SELECT 0 AS resultado, 'La contraseña actual es incorrecta.' AS mensaje
-    END
-END
-GO
-
-
-ALTER PROCEDURE sp_LoginUsuario 
-    @usuario VARCHAR(50), 
-    @clave VARCHAR(100)
-AS BEGIN
-    SET NOCOUNT ON
-    SELECT 
-        u.id_usuario, 
-        u.usuario, 
-        r.nombre AS rol,
-        r.codigo  AS rolCodigo,
-        co.id_cotizante
-    FROM Usuarios u
-    LEFT JOIN Usuarios_Roles ur ON u.id_usuario = ur.id_usuario
-    LEFT JOIN Roles r           ON ur.id_role   = r.id_role
-    LEFT JOIN Cotizantes co     ON co.id_usuario = u.id_usuario
-    WHERE u.usuario = @usuario 
-      AND u.clave = CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', @clave), 2) 
-      AND u.estado = 1
-END
-GO
-
-
-
-
-ALTER VIEW vw_TasasProductos AS
-SELECT 
-    t.id_tasa, 
-    t.id_producto, 
-    p.nombre AS nombre_producto, 
-    t.id_plazo, 
-    pl.dias, 
-    t.porcentaje, 
-    t.estado,
-    m.nombre AS nombre_moneda, -- Nueva columna
-    t.usuario_creacion, 
-    t.fecha_creacion, 
-    t.usuario_modificacion, 
-    t.fecha_modificacion
-FROM Tasas t
-INNER JOIN Productos p  ON t.id_producto = p.id_producto
-INNER JOIN Plazos    pl ON t.id_plazo    = pl.id_plazo
-INNER JOIN Monedas   m  ON p.id_moneda   = m.id_moneda
-GO
-
-
-
-
-
--- 1. ACTUALIZAR VISTA DE TASAS (Para ver la Moneda en Finanzas)
-ALTER VIEW vw_TasasProductos AS
-SELECT 
-    t.id_tasa, 
-    t.id_producto, 
-    p.nombre AS nombre_producto, 
-    t.id_plazo, 
-    pl.dias, 
-    t.porcentaje, 
-    t.estado,
-    m.nombre AS nombre_moneda, -- Se agrega columna moneda
-    t.usuario_creacion, 
-    t.fecha_creacion, 
-    t.usuario_modificacion, 
-    t.fecha_modificacion
-FROM Tasas t
-INNER JOIN Productos p  ON t.id_producto = p.id_producto
-INNER JOIN Plazos    pl ON t.id_plazo    = pl.id_plazo
-INNER JOIN Monedas   m  ON p.id_moneda   = m.id_moneda
-GO
--- 2. ACTUALIZAR VISTA DE HISTORIAL (Para que el sistema sepa de quién es cada cotización)
-ALTER VIEW vw_HistorialCotizaciones AS
-SELECT
-    c.id_cotizacion,
-    c.id_cotizante, -- Se agrega esta columna vital para seguridad
-    c.numero_cotizacion,
-    c.fechaCotizacion,
-    u.usuario,
-    p.nombre AS producto,
-    m.codigo AS moneda,
-    pl.descripcion AS plazo,
-    co.nombre + ' ' + co.primer_apellido + ' ' + co.segundo_apellido AS cotizante,
-    co.identificacion,
-    c.monto,
-    c.tasaAplicada AS tasa,
-    c.montoTotalInteresBruto AS montoTotalInteres,
-    c.montoTotalImpuesto,
-    c.montoTotalNeto
-FROM Cotizaciones c
-INNER JOIN Usuarios   u  ON c.idUsuario    = u.id_usuario
-INNER JOIN Productos  p  ON c.id_producto  = p.id_producto
-INNER JOIN Monedas    m  ON p.id_moneda    = m.id_moneda
-INNER JOIN Plazos     pl ON c.id_plazo     = pl.id_plazo
-INNER JOIN Cotizantes co ON c.id_cotizante = co.id_cotizante
-GO
--- 3. ACTUALIZAR PROCEDIMIENTO DE OBTENCIÓN (Para que la edición funcione)
-ALTER PROCEDURE sp_ObtenerCotizacion @id_cotizacion INT
-AS BEGIN
-    SET NOCOUNT ON
-    SELECT c.id_cotizacion, c.id_cotizante, -- Se agrega columna vital
-        c.numero_cotizacion, u.usuario, p.nombre AS producto, pl.dias AS plazo_dias,
-        c.fechaCotizacion, c.fechaInicio, c.fechaFinal, c.monto, c.tasaAplicada, c.porcentajeImpuesto,
-        c.montoTotalInteresBruto, c.montoTotalImpuesto, c.montoTotalNeto
-    FROM Cotizaciones c
-    INNER JOIN Usuarios  u  ON c.idUsuario   = u.id_usuario
-    INNER JOIN Productos p  ON c.id_producto = p.id_producto
-    INNER JOIN Plazos    pl ON c.id_plazo    = pl.id_plazo
-    WHERE c.id_cotizacion = @id_cotizacion
-END
-GO
-
-
-
-
-
-
-
--- mas cambios
-
-
--- 4. NUEVO PROCEDIMIENTO: VINCULAR USUARIO EXISTENTE A COTIZANTE
-CREATE PROCEDURE sp_VincularUsuarioCotizante
-    @id_cotizante INT,
-    @usuario VARCHAR(50),
-    @usuario_creador VARCHAR(50)
-AS BEGIN
-    SET NOCOUNT ON;
-    DECLARE @idUsuario INT;
-    DECLARE @idRole INT = (SELECT id_role FROM Roles WHERE codigo = 'COT');
-    
-    BEGIN TRY
-        BEGIN TRANSACTION
-        
-        -- 1. Validar que el usuario exista y este activo
-        SELECT @idUsuario = id_usuario FROM Usuarios WHERE usuario = @usuario AND estado = 1;
-        IF @idUsuario IS NULL
-            BEGIN RAISERROR('El usuario no existe o esta inactivo.', 16, 1); RETURN; END
-
-        -- 2. Validar que el usuario no este ya asignado a otro cotizante
-        IF EXISTS (SELECT 1 FROM Cotizantes WHERE id_usuario = @idUsuario AND id_cotizante != @id_cotizante)
-            BEGIN RAISERROR('Este usuario ya esta asignado a otro cotizante.', 16, 1); RETURN; END
-
-        -- 3. Actualizar el Cotizante con el Usuario
-        UPDATE Cotizantes 
-        SET id_usuario = @idUsuario, 
-            usuario_modificacion = @usuario_creador, 
-            fecha_modificacion = GETDATE()
-        WHERE id_cotizante = @id_cotizante;
-
-        -- 4. Asegurar que el usuario tenga el rol COT
-        IF NOT EXISTS (SELECT 1 FROM Usuarios_Roles WHERE id_usuario = @idUsuario AND id_role = @idRole)
-        BEGIN
-            INSERT INTO Usuarios_Roles (id_usuario, id_role, usuario_creacion, fecha_creacion)
-            VALUES (@idUsuario, @idRole, @usuario_creador, GETDATE());
+        IF UPDATE(clave) BEGIN
+            INSERT INTO Auditoria_Completa (SeccionAfectada, CuentaAfectada, AccionRealizada, CreadoOriginalmentePor, FechaHoraDeCreacion, ActualizadoPor, DetalleDelCambio)
+            SELECT CASE WHEN EXISTS(SELECT 1 FROM Usuarios_Roles ur WHERE ur.id_usuario = i.id_usuario AND ur.id_role = (SELECT id_role FROM Roles WHERE codigo='COT')) THEN 'Acceso de Cotizante' ELSE 'Acceso de Administrador' END,
+                   i.usuario, 'Cambio de Contraseña', i.usuario_creacion, i.fecha_creacion, ISNULL(i.usuario_modificacion, 'Sistema'), 'Se modificó la contraseña.'
+            FROM inserted i JOIN deleted d ON i.id_usuario = d.id_usuario WHERE i.clave <> d.clave;
         END
-        
-        COMMIT TRANSACTION
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION
-        DECLARE @ErrMsg NVARCHAR(4000) = ERROR_MESSAGE();
-        RAISERROR(@ErrMsg, 16, 1);
-    END CATCH
-END
+    END
+END;
 GO
 
-
-
--- ACTUALIZACIÓN: FILTRAR COTIZANTES PARA OCULTAR ADMINISTRADORES
-ALTER PROCEDURE sp_ListarCotizantes
-AS BEGIN
-    SET NOCOUNT ON;
-    SELECT c.id_cotizante AS IdCotizante, 
-           c.id_tipo_identificacion AS IdTipoIdentificacion, 
-           ti.nombre AS TipoIdentificacionNombre,
-           c.identificacion AS Identificacion, 
-           c.nombre AS Nombre, 
-           c.primer_apellido AS PrimerApellido, 
-           c.segundo_apellido AS SegundoApellido, 
-           c.correo AS Correo, 
-           c.telefono AS Telefono, 
-           c.estado AS Estado,
-           c.usuario_creacion AS UsuarioCreacion, 
-           c.fecha_creacion AS FechaCreacion, 
-           c.usuario_modificacion AS UsuarioModificacion, 
-           c.fecha_modificacion AS FechaModificacion,
-           c.id_usuario AS IdUsuario
-    FROM Cotizantes c
-    INNER JOIN Tipo_Identificacion ti ON c.id_tipo_identificacion = ti.id_tipo_identificacion
-    LEFT JOIN Usuarios_Roles ur ON c.id_usuario = ur.id_usuario
-    LEFT JOIN Roles r ON ur.id_role = r.id_role
-    WHERE c.estado = 1 
-      AND (c.id_usuario IS NULL OR r.codigo = 'COT')
-    ORDER BY c.primer_apellido, c.nombre
-END
-GO
-
-
--- ACTUALIZACIÓN: PERMITIR CAMBIO DE CONTRASEÑA EN EDICIÓN DE USUARIO
-ALTER PROCEDURE sp_ActualizarUsuario 
-    @id_usuario INT, 
-    @usuario VARCHAR(50), 
-    @clave_nueva VARCHAR(255) = NULL, 
-    @usuario_modificacion VARCHAR(50)
-AS BEGIN
-    SET NOCOUNT ON
-    
-    -- Si enviaron una clave nueva (no esta vacía)
-    IF (@clave_nueva IS NOT NULL AND RTRIM(LTRIM(@clave_nueva)) != '')
+CREATE TRIGGER trg_Auditoria_Cotizantes ON Cotizantes AFTER INSERT, UPDATE AS BEGIN
+    IF EXISTS (SELECT * FROM inserted) AND NOT EXISTS (SELECT * FROM deleted)
     BEGIN
-        UPDATE Usuarios 
-        SET usuario = @usuario, 
-            clave = HASHBYTES('SHA2_256', @clave_nueva), 
-            usuario_modificacion = @usuario_modificacion, 
-            fecha_modificacion = GETDATE() 
-        WHERE id_usuario = @id_usuario
+        INSERT INTO Auditoria_Completa (SeccionAfectada, CuentaAfectada, AccionRealizada, CreadoOriginalmentePor, FechaHoraDeCreacion, ActualizadoPor, DetalleDelCambio)
+        SELECT 'Ficha de Cotizante', i.identificacion, 'Creación Original del Perfil', i.usuario_creacion, i.fecha_creacion, i.usuario_creacion, 'Se registró el cotizante por primera vez.'
+        FROM inserted i;
     END
-    ELSE
-    -- Si no enviaron clave, se actualiza solo el nombre y la auditoría
+    IF EXISTS (SELECT * FROM inserted) AND EXISTS (SELECT * FROM deleted)
     BEGIN
-        UPDATE Usuarios 
-        SET usuario = @usuario, 
-            usuario_modificacion = @usuario_modificacion, 
-            fecha_modificacion = GETDATE() 
-        WHERE id_usuario = @id_usuario
+        INSERT INTO Auditoria_Completa (SeccionAfectada, CuentaAfectada, AccionRealizada, CreadoOriginalmentePor, FechaHoraDeCreacion, ActualizadoPor, DetalleDelCambio)
+        SELECT 'Ficha de Cotizante', i.identificacion, 'Actualización de Perfil', i.usuario_creacion, i.fecha_creacion, ISNULL(i.usuario_modificacion, 'Sistema'), 'Se actualizaron los datos personales.'
+        FROM inserted i JOIN deleted d ON i.id_cotizante = d.id_cotizante;
     END
-END
-GO
-
-
--- SCRIPT CORREGIDO: MANTIENE EL FORMATO HEXADECIMAL DE INVERIX
-ALTER PROCEDURE sp_ActualizarUsuario 
-    @id_usuario INT, 
-    @usuario VARCHAR(50), 
-    @clave_nueva VARCHAR(255) = NULL, 
-    @usuario_modificacion VARCHAR(50)
-AS BEGIN
-    SET NOCOUNT ON
-    
-    -- Si enviaron una clave nueva, usamos CONVERT(..., 2) para mantener el formato HEX
-    IF (@clave_nueva IS NOT NULL AND RTRIM(LTRIM(@clave_nueva)) != '')
-    BEGIN
-        UPDATE Usuarios 
-        SET usuario = @usuario, 
-            clave = CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', @clave_nueva), 2), 
-            usuario_modificacion = @usuario_modificacion, 
-            fecha_modificacion = GETDATE() 
-        WHERE id_usuario = @id_usuario
-    END
-    ELSE
-    BEGIN
-        UPDATE Usuarios 
-        SET usuario = @usuario, 
-            usuario_modificacion = @usuario_modificacion, 
-            fecha_modificacion = GETDATE() 
-        WHERE id_usuario = @id_usuario
-    END
-END
+END;
 GO

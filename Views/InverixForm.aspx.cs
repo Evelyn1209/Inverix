@@ -113,9 +113,25 @@ namespace Inverix.Views
                     return;
                 }
                 
-                if (clave.Length < 6)
+                if (clave.Length < 8)
                 {
-                    lblMensaje.Text = "La contraseña ingresada no cumple con la longitud mínima de seguridad de 6 caracteres .";
+                    lblMensaje.Text = "La contraseña debe tener al menos 8 caracteres.";
+                    return;
+                }
+
+                int letrasLogin = 0;
+                foreach (char c in clave) if (char.IsLetter(c)) letrasLogin++;
+                if (letrasLogin < 4)
+                {
+                    lblMensaje.Text = "La contraseña debe contener al menos 4 letras.";
+                    return;
+                }
+
+                bool mayusculaLogin = false;
+                foreach (char c in clave) if (char.IsUpper(c)) { mayusculaLogin = true; break; }
+                if (!mayusculaLogin)
+                {
+                    lblMensaje.Text = "La contraseña debe contener al menos una letra mayúscula.";
                     return;
                 }
 
@@ -236,6 +252,7 @@ namespace Inverix.Views
             pnlNuevaCotizacion.Visible = false;
             pnlListaCotizaciones.Visible = false;
             if (pnlReportesAdmin != null) pnlReportesAdmin.Visible = false;
+            if (pnlAuditoria != null) pnlAuditoria.Visible = false;
         }
 
         protected void lnkInicio_Click(object sender, EventArgs e)
@@ -332,6 +349,38 @@ namespace Inverix.Views
             pnlReportesAdmin.Visible = true;
             CargarCotizantesReporte();
             CargarReporteAdmin(true);
+        }
+
+        protected void lnkAuditoria_Click(object sender, EventArgs e)
+        {
+            Session["PanelActivo"] = "Auditoria";
+            OcultarTodosLosPaneles();
+            pnlAuditoria.Visible = true;
+            CargarAuditoria();
+        }
+
+        private void CargarAuditoria()
+        {
+            try
+            {
+                Inverix.Controllers.AuditoriaController ctrl = new Inverix.Controllers.AuditoriaController();
+                var lista = ctrl.ObtenerHistorialCompleto();
+                gvAuditoria.DataSource = lista;
+                gvAuditoria.DataBind();
+
+                if (lista.Count == 0)
+                {
+                    lblMensajeAuditoria.Text = "No hay registros de auditoría en el sistema.";
+                }
+                else
+                {
+                    lblMensajeAuditoria.Text = string.Empty;
+                }
+            }
+            catch (Exception ex)
+            {
+                lblMensajeAuditoria.Text = "Error al cargar auditoría: " + ex.Message;
+            }
         }
 
         // ================= PRODUCTOS =================
@@ -1526,9 +1575,25 @@ namespace Inverix.Views
                     return;
                 }
                 
-                if (clave.Length < 6)
+                if (clave.Length < 8)
                 {
-                    lblMensajeGenerarAcceso.Text = "La contraseña debe tener al menos 6 caracteres.";
+                    lblMensajeGenerarAcceso.Text = "La contraseña debe tener al menos 8 caracteres.";
+                    return;
+                }
+
+                int letrasAcceso = 0;
+                foreach (char c in clave) if (char.IsLetter(c)) letrasAcceso++;
+                if (letrasAcceso < 4)
+                {
+                    lblMensajeGenerarAcceso.Text = "La contraseña debe contener al menos 4 letras.";
+                    return;
+                }
+
+                bool mayusculaAcceso = false;
+                foreach (char c in clave) if (char.IsUpper(c)) { mayusculaAcceso = true; break; }
+                if (!mayusculaAcceso)
+                {
+                    lblMensajeGenerarAcceso.Text = "La contraseña debe contener al menos una letra mayúscula.";
                     return;
                 }
 
@@ -1764,6 +1829,9 @@ namespace Inverix.Views
                 hfIdCotizacionActual.Value = idCotizacion.ToString();
                 pnlDetallesView.Visible = true;
                 CargarDetallesCotizacion(idCotizacion);
+
+                GridViewRow row = (GridViewRow)((Control)e.CommandSource).NamingContainer;
+                gvCotizaciones.SelectedIndex = row.RowIndex;
             }
             else if (e.CommandName == "EditarCotizacion")
             {
@@ -1787,7 +1855,7 @@ namespace Inverix.Views
                         // Pre-seleccionar tasa
                         if (ddlTasaEdicion.Items.FindByValue(detalle.IdTasa.ToString()) != null)
                             ddlTasaEdicion.SelectedValue = detalle.IdTasa.ToString();
-                        txtMontoEdicion.Text = detalle.Monto.ToString("F2");
+                        txtMontoEdicion.Text = detalle.Monto.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
                     }
 
                     pnlDetallesView.Visible = false;
@@ -1910,6 +1978,7 @@ namespace Inverix.Views
         protected void btnCerrarDetalles_Click(object sender, EventArgs e)
         {
             pnlDetallesView.Visible = false;
+            gvCotizaciones.SelectedIndex = -1;
         }
 
         private void CargarDropdownsCotizanteEdicion()
@@ -2013,47 +2082,7 @@ namespace Inverix.Views
             lblMensajeEdicion.Visible = false;
         }
 
-        public override void VerifyRenderingInServerForm(Control control)
-        {
-            // Se requiere para exportar GridView a Excel sin errores.
-        }
 
-        protected void btnExportarExcel_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                Response.Clear();
-                Response.Buffer = true;
-                Response.AddHeader("content-disposition", "attachment;filename=MisCotizaciones.xls");
-                Response.Charset = "";
-                Response.ContentType = "application/vnd.ms-excel";
-
-                using (System.IO.StringWriter sw = new System.IO.StringWriter())
-                {
-                    using (System.Web.UI.HtmlTextWriter hw = new System.Web.UI.HtmlTextWriter(sw))
-                    {
-                        // Ocultar la columna de acciones (Ver Detalles) para la exportación
-                        gvCotizaciones.Columns[5].Visible = false;
-
-                        gvCotizaciones.RenderControl(hw);
-
-                        // Restaurar visibilidad
-                        gvCotizaciones.Columns[5].Visible = true;
-
-                        Response.Output.Write(sw.ToString());
-                        Response.Flush();
-                        Response.End();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                lblMensajeListaCotizaciones.Text = "Error al exportar a Excel: " + ex.Message;
-                lblMensajeListaCotizaciones.Style["background-color"] = "#f8d7da";
-                lblMensajeListaCotizaciones.Style["color"] = "#721c24";
-                lblMensajeListaCotizaciones.Visible = true;
-            }
-        }
 
 
 
@@ -2119,9 +2148,25 @@ namespace Inverix.Views
                     return;
                 }
                 
-                if (clave.Length < 6)
+                if (clave.Length < 8)
                 {
-                    lblMensajeRegistro.Text = "La contraseña ingresada no cumple con la longitud mínima de seguridad de 6 caracteres .";
+                    lblMensajeRegistro.Text = "La contraseña debe tener al menos 8 caracteres.";
+                    return;
+                }
+
+                int letrasReg = 0;
+                foreach (char c in clave) if (char.IsLetter(c)) letrasReg++;
+                if (letrasReg < 4)
+                {
+                    lblMensajeRegistro.Text = "La contraseña debe contener al menos 4 letras.";
+                    return;
+                }
+
+                bool mayusculaReg = false;
+                foreach (char c in clave) if (char.IsUpper(c)) { mayusculaReg = true; break; }
+                if (!mayusculaReg)
+                {
+                    lblMensajeRegistro.Text = "La contraseña debe contener al menos una letra mayúscula.";
                     return;
                 }
 
@@ -2423,9 +2468,23 @@ namespace Inverix.Views
                 {
                     // Crear
                     string clave = txtClaveUsuario.Text.Trim();
-                    if (clave.Length < 6)
+                    if (clave.Length < 8)
                     {
-                        MostrarErrorUsuario("La clave debe tener mínimo 6 caracteres.");
+                        MostrarErrorUsuario("La contraseña debe tener al menos 8 caracteres.");
+                        return;
+                    }
+                    int letrasUsr = 0;
+                    foreach (char c in clave) if (char.IsLetter(c)) letrasUsr++;
+                    if (letrasUsr < 4)
+                    {
+                        MostrarErrorUsuario("La contraseña debe contener al menos 4 letras.");
+                        return;
+                    }
+                    bool mayusculaUsr = false;
+                    foreach (char c in clave) if (char.IsUpper(c)) { mayusculaUsr = true; break; }
+                    if (!mayusculaUsr)
+                    {
+                        MostrarErrorUsuario("La contraseña debe contener al menos una letra mayúscula.");
                         return;
                     }
                     if (uCtrl.Crear(usuario, clave, idRol, admin))
@@ -2445,10 +2504,27 @@ namespace Inverix.Views
                     int idEdit = Convert.ToInt32(hfIdUsuario.Value);
                     string claveNueva = txtClaveUsuario.Text.Trim();
                     
-                    if (!string.IsNullOrEmpty(claveNueva) && claveNueva.Length < 6)
+                    if (!string.IsNullOrEmpty(claveNueva))
                     {
-                        MostrarErrorUsuario("La clave nueva debe tener mínimo 6 caracteres.");
-                        return;
+                        if (claveNueva.Length < 8)
+                        {
+                            MostrarErrorUsuario("La contraseña debe tener al menos 8 caracteres.");
+                            return;
+                        }
+                        int letrasUsrEdit = 0;
+                        foreach (char c in claveNueva) if (char.IsLetter(c)) letrasUsrEdit++;
+                        if (letrasUsrEdit < 4)
+                        {
+                            MostrarErrorUsuario("La contraseña debe contener al menos 4 letras.");
+                            return;
+                        }
+                        bool mayusculaUsrEdit = false;
+                        foreach (char c in claveNueva) if (char.IsUpper(c)) { mayusculaUsrEdit = true; break; }
+                        if (!mayusculaUsrEdit)
+                        {
+                            MostrarErrorUsuario("La contraseña debe contener al menos una letra mayúscula.");
+                            return;
+                        }
                     }
 
                     if (uCtrl.Actualizar(idEdit, usuario, idRol, claveNueva, admin))
@@ -2555,7 +2631,83 @@ namespace Inverix.Views
 
         protected void btnFiltrarReporteAdmin_Click(object sender, EventArgs e)
         {
+            pnlDetallesReporteAdmin.Visible = false;
+            gvReporteAdmin.SelectedIndex = -1;
             CargarReporteAdmin(true);
+        }
+
+        private decimal _totalInteresBrutoReporte = 0;
+        private decimal _totalImpuestoReporte = 0;
+        private decimal _totalInteresNetoReporte = 0;
+
+        protected void gvReporteAdmin_RowCommand(object sender, GridViewCommandEventArgs e)
+        {
+            if (e.CommandName == "VerDetalles")
+            {
+                int idCotizacion = Convert.ToInt32(e.CommandArgument);
+                hfIdCotizacionReporte.Value = idCotizacion.ToString();
+                pnlDetallesReporteAdmin.Visible = true;
+                
+                // Usamos el mismo método de CotizacionController
+                Inverix.Controllers.CotizacionController cCtrl = new Inverix.Controllers.CotizacionController();
+                var detalles = cCtrl.ObtenerDetallesActivos(idCotizacion);
+
+                _totalInteresBrutoReporte = 0;
+                _totalImpuestoReporte = 0;
+                _totalInteresNetoReporte = 0;
+
+                gvDetallesReporteAdmin.DataSource = detalles;
+                gvDetallesReporteAdmin.DataBind();
+
+                GridViewRow row = (GridViewRow)((Control)e.CommandSource).NamingContainer;
+                gvReporteAdmin.SelectedIndex = row.RowIndex;
+
+                // Ocultar todas las demás filas
+                foreach (GridViewRow r in gvReporteAdmin.Rows)
+                {
+                    r.Visible = (r.RowIndex == row.RowIndex);
+                }
+            }
+        }
+
+        protected void btnCerrarDetallesReporte_Click(object sender, EventArgs e)
+        {
+            pnlDetallesReporteAdmin.Visible = false;
+            gvReporteAdmin.SelectedIndex = -1;
+
+            // Volver a mostrar todas las filas
+            foreach (GridViewRow r in gvReporteAdmin.Rows)
+            {
+                r.Visible = true;
+            }
+        }
+
+        protected void gvDetallesReporteAdmin_RowDataBound(object sender, System.Web.UI.WebControls.GridViewRowEventArgs e)
+        {
+            if (e.Row.RowType == System.Web.UI.WebControls.DataControlRowType.DataRow)
+            {
+                Inverix.Classes.DetalleCotizacionClass item = (Inverix.Classes.DetalleCotizacionClass)e.Row.DataItem;
+                _totalInteresBrutoReporte += item.InteresBruto;
+                _totalImpuestoReporte += item.Impuesto;
+                _totalInteresNetoReporte += item.InteresNeto;
+            }
+        }
+
+        protected void gvDetallesReporteAdmin_DataBound(object sender, EventArgs e)
+        {
+            if (gvDetallesReporteAdmin.Rows.Count == 0) return;
+
+            System.Web.UI.WebControls.GridViewRow footerRow = gvDetallesReporteAdmin.FooterRow;
+            if (footerRow == null) return;
+
+            footerRow.BackColor = System.Drawing.ColorTranslator.FromHtml("#1693A5");
+            footerRow.ForeColor = System.Drawing.Color.White;
+            footerRow.Font.Bold = true;
+
+            footerRow.Cells[0].Text = "TOTAL";
+            footerRow.Cells[1].Text = _totalInteresBrutoReporte.ToString("N2");
+            footerRow.Cells[2].Text = _totalImpuestoReporte.ToString("N2");
+            footerRow.Cells[3].Text = _totalInteresNetoReporte.ToString("N2");
         }
 
         protected void btnReportePDFAdmin_Click(object sender, EventArgs e)
@@ -2590,14 +2742,42 @@ namespace Inverix.Views
                 string nombreReporte = (idCotizante == 0) ? "Reporte Global Financiero" : "Reporte Financiero por Cliente";
                 string nombreFirma = (idCotizante == 0) ? "Corte Administrativo General" : ddlReporteCotizante.SelectedItem.Text;
 
-                if (formato == "PDF")
-                    ReporteClass.GenerarPDF(dt, nombreReporte, nombreFirma, Response);
+                // Verificamos si hay una cotización seleccionada (modo "Ver Detalles" activo)
+                if (gvReporteAdmin.SelectedIndex != -1)
+                {
+                    int rowIndex = gvReporteAdmin.SelectedIndex;
+                    int idCotizacionSeleccionada = Convert.ToInt32(gvReporteAdmin.DataKeys[rowIndex].Value);
+
+                    // Filtramos el DataTable para que solo tenga esa fila
+                    DataTable dtFiltrado = dt.Clone();
+                    DataRow[] filas = dt.Select("IdCotizacion = " + idCotizacionSeleccionada);
+                    if (filas.Length > 0)
+                    {
+                        dtFiltrado.ImportRow(filas[0]);
+                    }
+
+                    // Obtenemos los detalles de la base de datos
+                    var detalles = cCtrl.ObtenerDetallesActivos(idCotizacionSeleccionada);
+
+                    // Exportamos usando los nuevos métodos que incluyen la tabla de detalles
+                    if (formato == "PDF")
+                        Inverix.Classes.ReporteClass.GenerarPDFConDetalles(dtFiltrado, detalles, nombreReporte, nombreFirma, Response);
+                    else
+                        Inverix.Classes.ReporteClass.GenerarExcelConDetalles(dtFiltrado, detalles, nombreReporte, Response);
+                }
                 else
-                    ReporteClass.GenerarExcel(dt, nombreReporte, Response);
+                {
+                    // Si no hay detalles abiertos, exportamos el listado completo normal
+                    if (formato == "PDF")
+                        Inverix.Classes.ReporteClass.GenerarPDF(dt, nombreReporte, nombreFirma, Response);
+                    else
+                        Inverix.Classes.ReporteClass.GenerarExcel(dt, nombreReporte, Response);
+                }
             }
             catch (Exception ex)
             {
                 lblMensajeReporteAdmin.Text = "Error al exportar: " + ex.Message;
+                lblMensajeReporteAdmin.Visible = true;
             }
         }
     }

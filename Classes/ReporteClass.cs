@@ -223,5 +223,218 @@ namespace Inverix.Classes
                 response.End();
             }
         }
+
+        public static void GenerarPDFConDetalles(DataTable dt, List<Inverix.Classes.DetalleCotizacionClass> detalles, string titulo, string nombreCotizante, HttpResponse response)
+        {
+            response.Clear();
+            response.ContentType = "application/pdf";
+            response.AddHeader("content-disposition", "attachment;filename=" + titulo.Replace(" ", "_") + ".pdf");
+
+            using (MemoryStream ms = new MemoryStream())
+            {
+                PdfWriter writer = new PdfWriter(ms);
+                PdfDocument pdf = new PdfDocument(writer);
+                pdf.SetDefaultPageSize(iText.Kernel.Geom.PageSize.A4.Rotate()); // Rotar a Horizontal
+                Document document = new Document(pdf);
+
+                // --- ENCABEZADO ---
+                string logoPath = HttpContext.Current.Server.MapPath("~/Images/iconlogo.png");
+                if (File.Exists(logoPath))
+                {
+                    ImageData data = ImageDataFactory.Create(logoPath);
+                    Image img = new Image(data);
+                    img.SetWidth(50);
+                    img.SetHorizontalAlignment(HorizontalAlignment.LEFT);
+                    document.Add(img);
+                }
+
+                Paragraph header = new Paragraph(titulo);
+                header.SetTextAlignment(TextAlignment.CENTER);
+                header.SetFontSize(20);
+                header.SetFontColor(new DeviceRgb(22, 147, 165));
+                document.Add(header);
+
+                Paragraph subtitulo = new Paragraph("Generado para: " + nombreCotizante);
+                subtitulo.SetTextAlignment(TextAlignment.LEFT);
+                subtitulo.SetFontSize(10);
+                document.Add(subtitulo);
+
+                Paragraph fechaEmision = new Paragraph("Fecha de emisi\u00f3n: " + DateTime.Now.ToString("dd/MM/yyyy HH:mm"));
+                fechaEmision.SetTextAlignment(TextAlignment.LEFT);
+                fechaEmision.SetFontSize(10);
+                fechaEmision.SetMarginBottom(10);
+                document.Add(fechaEmision);
+
+                // --- DATOS DE LA COTIZACION (1 SOLA FILA) ---
+                int columnCount = dt.Columns.Count - 1; 
+                Table table = new Table(UnitValue.CreatePercentArray(columnCount));
+                table.SetWidth(UnitValue.CreatePercentValue(100));
+
+                for (int i = 1; i < dt.Columns.Count; i++)
+                {
+                    Cell cell = new Cell().Add(new Paragraph(dt.Columns[i].ColumnName).SetFontColor(ColorConstants.WHITE).SetFontSize(9));
+                    cell.SetBackgroundColor(new DeviceRgb(22, 147, 165));
+                    cell.SetTextAlignment(TextAlignment.CENTER);
+                    table.AddHeaderCell(cell);
+                }
+
+                foreach (DataRow r in dt.Rows)
+                {
+                    for (int i = 1; i < dt.Columns.Count; i++)
+                    {
+                        Cell cell = new Cell().Add(new Paragraph(r[i].ToString()).SetFontSize(9));
+                        cell.SetTextAlignment(TextAlignment.CENTER);
+                        table.AddCell(cell);
+                    }
+                }
+                document.Add(table);
+
+                // --- TABLA DE DETALLES ---
+                document.Add(new Paragraph("\nDetalles Mensuales de la Cotizaci\u00f3n").SetFontSize(14).SetFontColor(new DeviceRgb(22, 147, 165)));
+
+                Table tableDet = new Table(UnitValue.CreatePercentArray(4));
+                tableDet.SetWidth(UnitValue.CreatePercentValue(100));
+
+                string[] headersDet = { "Mes", "Inter\u00e9s Bruto", "Impuesto", "Inter\u00e9s Neto" };
+                foreach (string h in headersDet)
+                {
+                    Cell cell = new Cell().Add(new Paragraph(h).SetFontColor(ColorConstants.WHITE).SetFontSize(9));
+                    cell.SetBackgroundColor(new DeviceRgb(22, 147, 165));
+                    cell.SetTextAlignment(TextAlignment.CENTER);
+                    tableDet.AddHeaderCell(cell);
+                }
+
+                decimal sumBruto = 0, sumImpuesto = 0, sumNeto = 0;
+
+                foreach (var det in detalles)
+                {
+                    tableDet.AddCell(new Cell().Add(new Paragraph(det.NumeroMes.ToString()).SetFontSize(9)).SetTextAlignment(TextAlignment.CENTER));
+                    tableDet.AddCell(new Cell().Add(new Paragraph(det.InteresBruto.ToString("N2")).SetFontSize(9)).SetTextAlignment(TextAlignment.CENTER));
+                    tableDet.AddCell(new Cell().Add(new Paragraph(det.Impuesto.ToString("N2")).SetFontSize(9)).SetTextAlignment(TextAlignment.CENTER));
+                    tableDet.AddCell(new Cell().Add(new Paragraph(det.InteresNeto.ToString("N2")).SetFontSize(9)).SetTextAlignment(TextAlignment.CENTER));
+                    
+                    sumBruto += det.InteresBruto;
+                    sumImpuesto += det.Impuesto;
+                    sumNeto += det.InteresNeto;
+                }
+
+                // Fila de totales
+                tableDet.AddCell(new Cell().Add(new Paragraph("TOTAL")).SetBackgroundColor(new DeviceRgb(22, 147, 165)).SetFontColor(ColorConstants.WHITE).SetTextAlignment(TextAlignment.CENTER));
+                tableDet.AddCell(new Cell().Add(new Paragraph(sumBruto.ToString("N2"))).SetBackgroundColor(new DeviceRgb(22, 147, 165)).SetFontColor(ColorConstants.WHITE).SetTextAlignment(TextAlignment.CENTER));
+                tableDet.AddCell(new Cell().Add(new Paragraph(sumImpuesto.ToString("N2"))).SetBackgroundColor(new DeviceRgb(22, 147, 165)).SetFontColor(ColorConstants.WHITE).SetTextAlignment(TextAlignment.CENTER));
+                tableDet.AddCell(new Cell().Add(new Paragraph(sumNeto.ToString("N2"))).SetBackgroundColor(new DeviceRgb(22, 147, 165)).SetFontColor(ColorConstants.WHITE).SetTextAlignment(TextAlignment.CENTER));
+
+                document.Add(tableDet);
+
+                // --- PIE DE PAGINA ---
+                Paragraph footer = new Paragraph("\n\nSistema Financiero Inverix - Reporte Oficial");
+                footer.SetTextAlignment(TextAlignment.CENTER);
+                footer.SetFontSize(8);
+                footer.SetFontColor(ColorConstants.GRAY);
+                document.Add(footer);
+
+                document.Close();
+
+                byte[] bytes = ms.ToArray();
+                response.OutputStream.Write(bytes, 0, bytes.Length);
+                response.Flush();
+                response.End();
+            }
+        }
+
+        public static void GenerarExcelConDetalles(DataTable dt, List<Inverix.Classes.DetalleCotizacionClass> detalles, string titulo, HttpResponse response)
+        {
+            using (var workbook = new XLWorkbook())
+            {
+                var worksheet = workbook.Worksheets.Add("Cotizacion");
+
+                // --- ENCABEZADO ---
+                worksheet.Cell(1, 1).Value = titulo;
+                worksheet.Range(1, 1, 1, dt.Columns.Count - 1).Merge().Style.Font.SetBold().Font.FontSize = 16;
+                worksheet.Range(1, 1, 1, dt.Columns.Count - 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                
+                worksheet.Cell(2, 1).Value = "Fecha de emisi\u00f3n: " + DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+                worksheet.Range(2, 1, 2, dt.Columns.Count - 1).Merge().Style.Font.SetItalic();
+
+                // --- CABECERAS DE LA COTIZACION ---
+                int colIndex = 1;
+                for (int i = 1; i < dt.Columns.Count; i++) // Ignoramos IdCotizacion
+                {
+                    var cell = worksheet.Cell(4, colIndex);
+                    cell.Value = dt.Columns[i].ColumnName;
+                    cell.Style.Font.SetBold();
+                    cell.Style.Fill.SetBackgroundColor(XLColor.FromArgb(22, 147, 165));
+                    cell.Style.Font.SetFontColor(XLColor.White);
+                    colIndex++;
+                }
+
+                // --- DATOS ---
+                int rowIndex = 5;
+                foreach (DataRow row in dt.Rows)
+                {
+                    colIndex = 1;
+                    for (int i = 1; i < dt.Columns.Count; i++)
+                    {
+                        worksheet.Cell(rowIndex, colIndex).Value = row[i].ToString();
+                        colIndex++;
+                    }
+                    rowIndex++;
+                }
+
+                // --- TABLA DE DETALLES ---
+                rowIndex += 2;
+                worksheet.Cell(rowIndex, 1).Value = "Detalles Mensuales";
+                worksheet.Range(rowIndex, 1, rowIndex, 4).Merge().Style.Font.SetBold().Font.FontSize = 14;
+                
+                rowIndex++;
+                worksheet.Cell(rowIndex, 1).Value = "Mes";
+                worksheet.Cell(rowIndex, 2).Value = "Inter\u00e9s Bruto";
+                worksheet.Cell(rowIndex, 3).Value = "Impuesto";
+                worksheet.Cell(rowIndex, 4).Value = "Inter\u00e9s Neto";
+                var rHeader = worksheet.Range(rowIndex, 1, rowIndex, 4);
+                rHeader.Style.Font.SetBold();
+                rHeader.Style.Fill.SetBackgroundColor(XLColor.FromArgb(22, 147, 165));
+                rHeader.Style.Font.SetFontColor(XLColor.White);
+
+                rowIndex++;
+                decimal sumBruto = 0, sumImpuesto = 0, sumNeto = 0;
+                foreach (var det in detalles)
+                {
+                    worksheet.Cell(rowIndex, 1).Value = det.NumeroMes;
+                    worksheet.Cell(rowIndex, 2).Value = det.InteresBruto;
+                    worksheet.Cell(rowIndex, 3).Value = det.Impuesto;
+                    worksheet.Cell(rowIndex, 4).Value = det.InteresNeto;
+
+                    sumBruto += det.InteresBruto;
+                    sumImpuesto += det.Impuesto;
+                    sumNeto += det.InteresNeto;
+                    rowIndex++;
+                }
+
+                worksheet.Cell(rowIndex, 1).Value = "TOTAL";
+                worksheet.Cell(rowIndex, 2).Value = sumBruto;
+                worksheet.Cell(rowIndex, 3).Value = sumImpuesto;
+                worksheet.Cell(rowIndex, 4).Value = sumNeto;
+                worksheet.Range(rowIndex, 1, rowIndex, 4).Style.Font.SetBold();
+                worksheet.Range(rowIndex, 1, rowIndex, 4).Style.Fill.SetBackgroundColor(XLColor.FromArgb(22, 147, 165));
+                worksheet.Range(rowIndex, 1, rowIndex, 4).Style.Font.SetFontColor(XLColor.White);
+
+                worksheet.Columns().AdjustToContents();
+
+                response.Clear();
+                response.Buffer = true;
+                response.Charset = "";
+                response.ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                response.AddHeader("content-disposition", "attachment;filename=" + titulo.Replace(" ", "_") + ".xlsx");
+
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    workbook.SaveAs(ms);
+                    ms.WriteTo(response.OutputStream);
+                    response.Flush();
+                    response.End();
+                }
+            }
+        }
     }
 }

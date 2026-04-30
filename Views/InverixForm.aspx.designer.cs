@@ -366,6 +366,15 @@ namespace Inverix.Views
         protected global::System.Web.UI.WebControls.LinkButton lnkReportesAdmin;
 
         /// <summary>
+        /// lnkAuditoria control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.LinkButton lnkAuditoria;
+
+        /// <summary>
         /// btnCerrarSesion control.
         /// </summary>
         /// <remarks>
@@ -1329,24 +1338,6 @@ namespace Inverix.Views
         protected global::System.Web.UI.WebControls.Panel pnlListaCotizaciones;
 
         /// <summary>
-        /// btnExportarExcel control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.Button btnExportarExcel;
-
-        /// <summary>
-        /// btnExportarPDF control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.Button btnExportarPDF;
-
-        /// <summary>
         /// lblMensajeListaCotizaciones control.
         /// </summary>
         /// <remarks>
@@ -1597,5 +1588,77 @@ namespace Inverix.Views
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.GridView gvReporteAdmin;
+
+        /// <summary>
+        /// pnlDetallesReporteAdmin control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Panel pnlDetallesReporteAdmin;
+
+        /// <summary>
+        /// lblTituloDetallesReporte control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl lblTituloDetallesReporte;
+
+        /// <summary>
+        /// hfIdCotizacionReporte control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.HiddenField hfIdCotizacionReporte;
+
+        /// <summary>
+        /// gvDetallesReporteAdmin control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.GridView gvDetallesReporteAdmin;
+
+        /// <summary>
+        /// btnCerrarDetallesReporte control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button btnCerrarDetallesReporte;
+
+        /// <summary>
+        /// pnlAuditoria control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Panel pnlAuditoria;
+
+        /// <summary>
+        /// lblMensajeAuditoria control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label lblMensajeAuditoria;
+
+        /// <summary>
+        /// gvAuditoria control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.GridView gvAuditoria;
     }
 }

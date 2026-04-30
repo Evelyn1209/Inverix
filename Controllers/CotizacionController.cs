@@ -92,7 +92,8 @@ namespace Inverix.Controllers
                            c.montoTotalInteresBruto AS InteresBruto,
                            c.montoTotalImpuesto AS Impuesto,
                            v.montoTotalNeto AS GananciaNeta,
-                           c.usuario_creacion AS UsuarioCreacion, c.fecha_creacion AS FechaCreacion
+                           c.usuario_creacion AS UsuarioCreacion, c.fecha_creacion AS FechaCreacion,
+                           c.usuario_modificacion AS UsuarioModificacion, c.fecha_modificacion AS FechaModificacion
                     FROM vw_HistorialCotizaciones v
                     INNER JOIN Cotizaciones c ON v.id_cotizacion = c.id_cotizacion
                     WHERE (c.id_cotizante = @id_cotizante OR @id_cotizante = 0) AND c.estado = 1

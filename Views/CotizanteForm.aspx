@@ -124,7 +124,6 @@
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">Mis Cotizaciones</h3>
-                    <asp:Button ID="btnImprimirMisCot" runat="server" Text="&#128438; Imprimir" CssClass="btn-secondary" OnClientClick="imprimirMisCotizaciones(); return false;" />
                 </div>
 
                 <asp:Label ID="lblMensajeMisCot" runat="server" Visible="false"
@@ -132,6 +131,7 @@
 
                 <asp:GridView ID="gvMisCotizaciones" runat="server" AutoGenerateColumns="False"
                     CssClass="table-modern" DataKeyNames="IdCotizacion" OnRowCommand="gvMisCotizaciones_RowCommand">
+                    <SelectedRowStyle BackColor="#e9ecef" />
                     <Columns>
                         <asp:BoundField DataField="NumeroCotizacion" HeaderText="Nro. Cotizaci&oacute;n" />
                         <asp:BoundField DataField="NombreProducto" HeaderText="Producto" />
@@ -219,7 +219,8 @@
                 <asp:Label ID="lblMensajeReporte" runat="server" Visible="false"
                     style="display:block; padding:12px 16px; border-radius:6px; font-weight:bold; margin:0 15px 10px;"></asp:Label>
 
-                <asp:GridView ID="gvReporte" runat="server" AutoGenerateColumns="False" CssClass="table-modern" DataKeyNames="IdCotizacion">
+                <asp:GridView ID="gvReporte" runat="server" AutoGenerateColumns="False" CssClass="table-modern" DataKeyNames="IdCotizacion" OnRowCommand="gvReporte_RowCommand">
+                    <SelectedRowStyle BackColor="#e9ecef" />
                     <Columns>
                         <asp:BoundField DataField="NumeroCotizacion" HeaderText="Nro. Cotizaci&oacute;n" />
                         <asp:BoundField DataField="NombreProducto" HeaderText="Producto" />
@@ -231,8 +232,31 @@
                         <asp:BoundField DataField="GananciaNeta" HeaderText="Ganancia Neta" DataFormatString="{0:N2}" />
                         <asp:BoundField DataField="UsuarioCreacion" HeaderText="Usuario" />
                         <asp:BoundField DataField="FechaCreacion" HeaderText="Fecha Reg." DataFormatString="{0:dd/MM/yyyy}" />
+                        <asp:TemplateField>
+                            <ItemTemplate>
+                                <asp:LinkButton ID="btnVerDetalleReporteCot" runat="server" CommandName="VerDetalles" CommandArgument='<%# Eval("IdCotizacion") %>' CssClass="btn-secondary" Text="Ver Detalle"></asp:LinkButton>
+                            </ItemTemplate>
+                        </asp:TemplateField>
                     </Columns>
                 </asp:GridView>
+
+                <!-- Panel de Detalles del Reporte Cotizante -->
+                <asp:Panel ID="pnlDetallesReporteCot" runat="server" Visible="false" style="margin-top:20px; border-top:2px solid #ddd; padding-top:15px;">
+                    <h4 style="color:#1693A5;">Detalles Mensuales</h4>
+                    <asp:HiddenField ID="hfIdCotizacionReporteCot" runat="server" />
+                    <br/>
+                    <asp:GridView ID="gvDetallesReporteCot" runat="server" AutoGenerateColumns="False" CssClass="table-modern" DataKeyNames="IdCotizacion,NumeroMes" OnRowDataBound="gvDetallesReporteCot_RowDataBound" OnDataBound="gvDetallesReporteCot_DataBound" ShowFooter="True">
+                        <Columns>
+                            <asp:BoundField DataField="NumeroMes" HeaderText="Mes" />
+                            <asp:BoundField DataField="InteresBruto" HeaderText="Inter&eacute;s Bruto" DataFormatString="{0:N2}" />
+                            <asp:BoundField DataField="Impuesto" HeaderText="Impuesto (13%)" DataFormatString="{0:N2}" />
+                            <asp:BoundField DataField="InteresNeto" HeaderText="Inter&eacute;s Neto" DataFormatString="{0:N2}" />
+                        </Columns>
+                    </asp:GridView>
+                    <div style="margin-top: 15px;">
+                        <asp:Button ID="btnCerrarDetallesReporteCot" runat="server" Text="Cerrar Detalles" CssClass="btn-secondary" OnClick="btnCerrarDetallesReporteCot_Click" />
+                    </div>
+                </asp:Panel>
             </div>
         </asp:Panel>
 
@@ -260,7 +284,7 @@
                         <asp:TextBox ID="txtClaveActual" runat="server" CssClass="form-input" TextMode="Password"></asp:TextBox>
                     </div>
                     <div class="form-group">
-                        <label>Nueva Contrase&ntilde;a (m&iacute;nimo 6 caracteres):</label>
+                        <label>Nueva Contrase&ntilde;a (minimnimo 8 caracteres):</label>
                         <asp:TextBox ID="txtClaveNueva" runat="server" CssClass="form-input" TextMode="Password"></asp:TextBox>
                     </div>
                     <div class="form-group">
@@ -276,22 +300,6 @@
 </div><!-- fin .layout -->
 
 <script type="text/javascript">
-    function imprimirMisCotizaciones() {
-        var pw = window.open('', 'Print', 'width=900,height=700');
-        pw.document.write('<html><head><title>Mis Cotizaciones - Inverix</title>');
-        pw.document.write('<style>body{font-family:Arial,sans-serif;padding:20px}table{border-collapse:collapse;width:100%}th{background:#1693A5;color:#fff;padding:8px}td{border:1px solid #ddd;padding:7px}tfoot td{background:#1693A5;color:#fff;font-weight:bold}h2{color:#1693A5;border-bottom:2px solid #1693A5;padding-bottom:8px}</style></head><body>');
-        pw.document.write('<h2>Mis Cotizaciones &mdash; Inverix</h2>');
-        var t = document.getElementById('<%= gvMisCotizaciones.ClientID %>');
-        if (t) { var c = t.cloneNode(true); c.querySelectorAll('tr > *:last-child').forEach(function(x){x.style.display='none';}); pw.document.write(c.outerHTML); }
-        var d = document.getElementById('<%= pnlDetallesCot.ClientID %>');
-        if (d && d.style.display !== 'none') {
-            var gd = document.getElementById('<%= gvDetallesMensualesCot.ClientID %>');
-            if (gd) { pw.document.write('<h4 style="color:#1693A5;margin-top:24px">Detalles Mensuales</h4>'); pw.document.write(gd.outerHTML); }
-        }
-        pw.document.write('<p style="margin-top:24px;font-size:11px;color:#888">Generado: ' + new Date().toLocaleString() + '</p></body></html>');
-        pw.document.close(); pw.focus(); setTimeout(function(){ pw.print(); }, 400);
-    }
-
     function imprimirReporte() {
         var pw = window.open('', 'Print', 'width=900,height=700');
         pw.document.write('<html><head><title>Reporte - Inverix</title>');

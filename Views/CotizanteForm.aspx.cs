@@ -7,10 +7,15 @@ namespace Inverix.Views
 {
     public partial class CotizanteForm : System.Web.UI.Page
     {
-        // Acumuladores para totales del GridView de detalles
+        // Acumuladores para totales del GridView de detalles (Mis Cotizaciones)
         private decimal _totalBruto = 0;
         private decimal _totalImpuesto = 0;
         private decimal _totalNeto = 0;
+
+        // Acumuladores para totales del GridView de detalles (Mis Reportes)
+        private decimal _totalBrutoReporte = 0;
+        private decimal _totalImpuestoReporte = 0;
+        private decimal _totalNetoReporte = 0;
 
         // ================================================
         //  PAGE LOAD
@@ -142,6 +147,8 @@ namespace Inverix.Views
             Session["PanelActivoCot"] = "MisCot";
             OcultarTodosLosPaneles();
             CargarMisCotizaciones();
+            gvMisCotizaciones.SelectedIndex = -1;
+            foreach (GridViewRow row in gvMisCotizaciones.Rows) row.Visible = true;
             pnlMisCotizaciones.Visible = true;
         }
 
@@ -335,9 +342,24 @@ namespace Inverix.Views
 
         protected void gvMisCotizaciones_RowCommand(object sender, GridViewCommandEventArgs e)
         {
+            if (e.CommandName == "VerDetalles" || e.CommandName == "EditarCotizacion")
+            {
+                // Resaltar la fila seleccionada
+                GridViewRow row = (GridViewRow)((System.Web.UI.Control)e.CommandSource).NamingContainer;
+                gvMisCotizaciones.SelectedIndex = row.RowIndex;
+            }
+
             int idCotizacion = Convert.ToInt32(e.CommandArgument);
             if (e.CommandName == "VerDetalles")
             {
+                // Ocultar las demás filas para una vista limpia (como en el Admin)
+                GridViewRow selectedRow = (GridViewRow)((System.Web.UI.Control)e.CommandSource).NamingContainer;
+                foreach (GridViewRow row in gvMisCotizaciones.Rows)
+                {
+                    if (row != selectedRow)
+                        row.Visible = false;
+                }
+
                 hfIdCotizacionCot.Value = idCotizacion.ToString();
                 CargarDetallesMensuales(idCotizacion);
                 pnlDetallesCot.Visible = true;
@@ -432,6 +454,7 @@ namespace Inverix.Views
                 {
                     MostrarMensaje(lblMensajeMisCot, "¡Cotización actualizada exitosamente!", false);
                     pnlEditarCotizacion.Visible = false;
+                    gvMisCotizaciones.SelectedIndex = -1;
                     CargarMisCotizaciones();
                 }
             }
@@ -444,6 +467,7 @@ namespace Inverix.Views
         protected void btnCancelarEdicion_Click(object sender, EventArgs e)
         {
             pnlEditarCotizacion.Visible = false;
+            gvMisCotizaciones.SelectedIndex = -1;
         }
 
         private void CargarDetallesMensuales(int idCotizacion)
@@ -494,6 +518,13 @@ namespace Inverix.Views
         protected void btnCerrarDetalleCot_Click(object sender, EventArgs e)
         {
             pnlDetallesCot.Visible = false;
+            gvMisCotizaciones.SelectedIndex = -1;
+            
+            // Volver a mostrar todas las filas
+            foreach (GridViewRow row in gvMisCotizaciones.Rows)
+            {
+                row.Visible = true;
+            }
         }
 
         // ================================================
@@ -521,6 +552,73 @@ namespace Inverix.Views
             if (DateTime.TryParse(txtFechaDesde.Text, out tmp)) desde = tmp;
             if (DateTime.TryParse(txtFechaHasta.Text, out tmp)) hasta = tmp;
             CargarReporte(desde, hasta);
+        }
+
+        protected void gvReporte_RowCommand(object sender, GridViewCommandEventArgs e)
+        {
+            if (e.CommandName == "VerDetalles")
+            {
+                int idCotizacion = Convert.ToInt32(e.CommandArgument);
+                hfIdCotizacionReporteCot.Value = idCotizacion.ToString();
+                pnlDetallesReporteCot.Visible = true;
+
+                // Cargar detalles mensuales
+                Inverix.Controllers.CotizacionController cCtrl = new Inverix.Controllers.CotizacionController();
+                var detalles = cCtrl.ObtenerDetallesActivos(idCotizacion);
+
+                _totalBrutoReporte = 0;
+                _totalImpuestoReporte = 0;
+                _totalNetoReporte = 0;
+
+                gvDetallesReporteCot.DataSource = detalles;
+                gvDetallesReporteCot.DataBind();
+
+                // Resaltar fila seleccionada y ocultar las demás
+                GridViewRow row = (GridViewRow)((System.Web.UI.Control)e.CommandSource).NamingContainer;
+                gvReporte.SelectedIndex = row.RowIndex;
+
+                foreach (GridViewRow r in gvReporte.Rows)
+                {
+                    r.Visible = (r.RowIndex == row.RowIndex);
+                }
+            }
+        }
+
+        protected void btnCerrarDetallesReporteCot_Click(object sender, EventArgs e)
+        {
+            pnlDetallesReporteCot.Visible = false;
+            gvReporte.SelectedIndex = -1;
+
+            // Volver a mostrar todas las filas
+            foreach (GridViewRow r in gvReporte.Rows)
+            {
+                r.Visible = true;
+            }
+        }
+
+        protected void gvDetallesReporteCot_RowDataBound(object sender, GridViewRowEventArgs e)
+        {
+            if (e.Row.RowType == DataControlRowType.DataRow)
+            {
+                DetalleCotizacionClass item = (DetalleCotizacionClass)e.Row.DataItem;
+                _totalBrutoReporte += item.InteresBruto;
+                _totalImpuestoReporte += item.Impuesto;
+                _totalNetoReporte += item.InteresNeto;
+            }
+        }
+
+        protected void gvDetallesReporteCot_DataBound(object sender, EventArgs e)
+        {
+            if (gvDetallesReporteCot.Rows.Count == 0) return;
+            GridViewRow footer = gvDetallesReporteCot.FooterRow;
+            footer.Cells[0].Text = "TOTALES";
+            footer.Cells[0].Font.Bold = true;
+            footer.Cells[1].Text = _totalBrutoReporte.ToString("N2");
+            footer.Cells[1].Font.Bold = true;
+            footer.Cells[2].Text = _totalImpuestoReporte.ToString("N2");
+            footer.Cells[2].Font.Bold = true;
+            footer.Cells[3].Text = _totalNetoReporte.ToString("N2");
+            footer.Cells[3].Font.Bold = true;
         }
 
         protected void btnVerTodoReporte_Click(object sender, EventArgs e)
@@ -552,7 +650,26 @@ namespace Inverix.Views
                     MostrarMensaje(lblMensajeReporte, "No hay datos para exportar.", true);
                     return;
                 }
-                ReporteClass.GenerarExcel(dt, "Reporte de Cotizaciones", Response);
+
+                // Verificar si hay una cotización con detalle abierto
+                if (gvReporte.SelectedIndex != -1)
+                {
+                    int rowIndex = gvReporte.SelectedIndex;
+                    int idCotizacionSeleccionada = Convert.ToInt32(gvReporte.DataKeys[rowIndex].Value);
+
+                    DataTable dtFiltrado = dt.Clone();
+                    DataRow[] filas = dt.Select("IdCotizacion = " + idCotizacionSeleccionada);
+                    if (filas.Length > 0) dtFiltrado.ImportRow(filas[0]);
+
+                    Inverix.Controllers.CotizacionController cCtrl = new Inverix.Controllers.CotizacionController();
+                    var detalles = cCtrl.ObtenerDetallesActivos(idCotizacionSeleccionada);
+
+                    ReporteClass.GenerarExcelConDetalles(dtFiltrado, detalles, "Reporte de Cotizaciones", Response);
+                }
+                else
+                {
+                    ReporteClass.GenerarExcel(dt, "Reporte de Cotizaciones", Response);
+                }
             }
             catch (Exception ex)
             {
@@ -571,7 +688,26 @@ namespace Inverix.Views
                     return;
                 }
                 string nombre = Session["NombreCompletoCot"] != null ? Session["NombreCompletoCot"].ToString() : "Cotizante";
-                ReporteClass.GenerarPDF(dt, "Reporte Historial de Cotizaciones", nombre, Response);
+
+                // Verificar si hay una cotización con detalle abierto
+                if (gvReporte.SelectedIndex != -1)
+                {
+                    int rowIndex = gvReporte.SelectedIndex;
+                    int idCotizacionSeleccionada = Convert.ToInt32(gvReporte.DataKeys[rowIndex].Value);
+
+                    DataTable dtFiltrado = dt.Clone();
+                    DataRow[] filas = dt.Select("IdCotizacion = " + idCotizacionSeleccionada);
+                    if (filas.Length > 0) dtFiltrado.ImportRow(filas[0]);
+
+                    Inverix.Controllers.CotizacionController cCtrl = new Inverix.Controllers.CotizacionController();
+                    var detalles = cCtrl.ObtenerDetallesActivos(idCotizacionSeleccionada);
+
+                    ReporteClass.GenerarPDFConDetalles(dtFiltrado, detalles, "Reporte Historial de Cotizaciones", nombre, Response);
+                }
+                else
+                {
+                    ReporteClass.GenerarPDF(dt, "Reporte Historial de Cotizaciones", nombre, Response);
+                }
             }
             catch (Exception ex)
             {
@@ -599,9 +735,25 @@ namespace Inverix.Views
                     return;
                 }
 
-                if (claveNueva.Length < 6)
+                if (claveNueva.Length < 8)
                 {
-                    MostrarMensaje(lblMensajePerfil, "La nueva contraseña debe tener al menos 6 caracteres.", true);
+                    MostrarMensaje(lblMensajePerfil, "La contraseña debe tener al menos 8 caracteres.", true);
+                    return;
+                }
+
+                int letrasPerfil = 0;
+                foreach (char c in claveNueva) if (char.IsLetter(c)) letrasPerfil++;
+                if (letrasPerfil < 4)
+                {
+                    MostrarMensaje(lblMensajePerfil, "La contraseña debe contener al menos 4 letras.", true);
+                    return;
+                }
+
+                bool mayusculaPerfil = false;
+                foreach (char c in claveNueva) if (char.IsUpper(c)) { mayusculaPerfil = true; break; }
+                if (!mayusculaPerfil)
+                {
+                    MostrarMensaje(lblMensajePerfil, "La contraseña debe contener al menos una letra mayúscula.", true);
                     return;
                 }
 
